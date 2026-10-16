@@ -54,19 +54,14 @@ cmd_start() {
 
     [[ -f "$STATE_DIR/env" ]] && cmd_stop >/dev/null 2>&1 || true
 
-    if pgrep -x start-hyprland >/dev/null; then
-        die "a desktop session (start-hyprland) owns the GPU; stop it first: sudo systemctl stop getty@tty1"
-    fi
+    # shellcheck source=lib.sh
+    source "$REPO_ROOT/scripts/e2e/lib.sh"
+    local mode
+    mode="$(hs_setup_backend)" || exit 1
 
-    # Only one compositor can be DRM master of the (single) card at a time; a second
-    # instance fails to allocate buffers and ends up with 0x0 outputs. Kill leftovers
-    # (e.g. from a crashed hyprtester run).
-    if pgrep -x Hyprland >/dev/null; then
-        echo "hs-session: killing stray Hyprland instances: $(pgrep -x Hyprland | tr '\n' ' ')" >&2
-        pkill -x Hyprland || true
-        for _ in $(seq 1 30); do pgrep -x Hyprland >/dev/null || break; sleep 0.1; done
-        pkill -9 -x Hyprland || true
-    fi
+    # leftovers (e.g. from a crashed hyprtester run); desktop sessions are never touched
+    hs_kill_test_compositors
+
     [[ -x "$bin" ]] || die "compositor binary not found: $bin"
 
     if [[ -z "$config" ]]; then
@@ -89,10 +84,10 @@ cmd_start() {
     local before
     before="$(ls "$XDG_RUNTIME_DIR/hypr" 2>/dev/null || true)"
 
-    # No logind seat over ssh: the noop libseat backend lets aquamarine open the
+    # Headless mode (lib.sh): no logind seat over ssh, the noop libseat backend lets aquamarine open the
     # DRM node directly (user is in the video group), which provides the GBM
     # allocator for the headless outputs. Rendering falls back to llvmpipe.
-    LIBSEAT_BACKEND=noop HYPRLAND_HEADLESS_ONLY=1 LANG=en_US.UTF-8 \
+    HYPRLAND_HEADLESS_ONLY=1 LANG=en_US.UTF-8 \
         setsid "$bin" --config "$config" > "$STATE_DIR/compositor.log" 2>&1 < /dev/null &
     local pid=$!
 
@@ -143,7 +138,7 @@ EOF
         WAYLAND_DISPLAY="$wl" setsid quickshell -p "$REPO_ROOT/scripts/e2e/dev-shell" > "$STATE_DIR/client-quickshell.log" 2>&1 < /dev/null &
     fi
 
-    echo "started pid=$pid sig=$sig wayland=$wl${vnc:+ vnc=127.0.0.1:$vnc}"
+    echo "started ($mode) pid=$pid sig=$sig wayland=$wl${vnc:+ vnc=127.0.0.1:$vnc}"
 }
 
 cmd_stop() {

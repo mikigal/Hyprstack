@@ -9,21 +9,16 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_DIR="${HS_LOG_DIR:-$HOME/.cache/hs-session}"
 mkdir -p "$LOG_DIR"
 
-# The VM console session (start-hyprland on tty1) owns the DRM card; killing it would just get it
-# restarted by autologin and fight the tests for the card.
-if pgrep -x start-hyprland >/dev/null; then
-    echo "a desktop session (start-hyprland) is running on this machine and owns the GPU." >&2
-    echo "stop it first: sudo systemctl stop getty@tty1   (start again: sudo systemctl start getty@tty1)" >&2
-    exit 1
-fi
-
-# a crashed run can leave a compositor behind holding DRM master
-pkill -x Hyprland 2>/dev/null && sleep 1
-pkill -9 -x Hyprland 2>/dev/null
+# shellcheck source=lib.sh
+source "$REPO_ROOT/scripts/e2e/lib.sh"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-export LIBSEAT_BACKEND=noop
 export LANG=en_US.UTF-8
+MODE="$(hs_setup_backend)" || exit 1
+echo "run-hyprtester: $MODE mode" >&2
+
+# a crashed run can leave a test compositor behind (desktop sessions are never touched)
+hs_kill_test_compositors
 
 ARGS=("$@")
 if [[ "${STACK_ONLY:-0}" == "1" && ${#ARGS[@]} -eq 0 ]]; then
@@ -35,5 +30,5 @@ cd "$REPO_ROOT/hyprtester" || exit 1
     | grep -av "MESA-EGL: warning" | tee "$LOG_DIR/hyprtester.log"
 RC=${PIPESTATUS[0]}
 
-pkill -x Hyprland 2>/dev/null
+hs_kill_test_compositors
 exit "$RC"
