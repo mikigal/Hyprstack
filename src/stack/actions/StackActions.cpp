@@ -47,7 +47,7 @@ ActionResult Stack::Actions::maximize(eTogglableAction action, uint8_t mode, std
         return notStacking();
 
     const bool ENABLE = resolveToggle(action, windowStack()->maximized(WINDOW) == mode);
-    windowStack()->setMaximized(WINDOW, ENABLE ? mode : MAXIMIZE_NONE);
+    windowStack()->setMaximized(WINDOW, ENABLE ? mode : sc<uint8_t>(MAXIMIZE_NONE));
     return {};
 }
 

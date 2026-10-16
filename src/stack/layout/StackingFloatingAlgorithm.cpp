@@ -25,10 +25,6 @@
 using namespace Layout;
 using namespace Layout::Floating;
 
-static SBoxExtents extentsFor(SP<ITarget> t) {
-    return t->window() ? t->window()->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS) : SBoxExtents{};
-}
-
 // Decorations of a window that is being mapped haven't been positioned yet (the positioner skips
 // unmapped windows), so predict what border and titlebar will take.
 static SBoxExtents predictedExtents(PHLWINDOW w) {

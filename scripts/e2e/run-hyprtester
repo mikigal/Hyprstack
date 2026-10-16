@@ -14,8 +14,8 @@ source "$REPO_ROOT/scripts/e2e/lib.sh"
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 export LANG=en_US.UTF-8
-MODE="$(hs_setup_backend)" || exit 1
-echo "run-hyprtester: $MODE mode" >&2
+hs_setup_backend || exit 1
+echo "run-hyprtester: $HS_MODE mode" >&2
 
 # a crashed run can leave a test compositor behind (desktop sessions are never touched)
 hs_kill_test_compositors

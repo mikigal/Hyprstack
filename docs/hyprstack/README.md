@@ -4,7 +4,7 @@ Fork Hyprlanda do pracy w trybie **stacking** (okna pływające jak w KDE / Wind
 Drop-in zamiennik: ta sama binarka `Hyprland`, `hyprctl`, IPC i config w Lua — więc Quickshell
 (moduł Hyprland) działa bez zmian.
 
-Projekt, decyzje i stan prac: [DESIGN.md](DESIGN.md).
+Projekt, decyzje i stan prac: [DESIGN.md](DESIGN.md). Instalacja na czystym Archu: `scripts/hyprstack/setup-arch.sh`, kontekst dla Claude: [HANDOFF.md](HANDOFF.md).
 
 ![Hyprstack: quick-tile, belki SSD, okno CSD (GTK), X11, roboczy taskbar](screenshot.png)
 

@@ -33,13 +33,14 @@ hs_kill_test_compositors() {
     kill -9 $(hs_test_compositors) 2>/dev/null || true
 }
 
-# exports the environment for a test compositor, prints the mode
+# exports the environment for a test compositor, sets HS_MODE (nested / headless).
+# Call it directly, not in $(...): a subshell would drop the exports.
 hs_setup_backend() {
     if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
         # nested: keep aquamarine off the DRM device, it gets buffers from the parent session
         export AQ_DRM_DEVICES=/nonexistent-hyprstack-nested
         unset LIBSEAT_BACKEND
-        echo nested
+        HS_MODE=nested
         return 0
     fi
 
@@ -52,5 +53,5 @@ hs_setup_backend() {
 
     export LIBSEAT_BACKEND=noop
     unset AQ_DRM_DEVICES
-    echo headless
+    HS_MODE=headless
 }

@@ -68,12 +68,12 @@ void CWindowStack::purgeExpired() {
 
 uint8_t CWindowStack::maximized(PHLWINDOW w) const {
     const auto DATA = find(w);
-    return DATA ? DATA->maximized : MAXIMIZE_NONE;
+    return DATA ? DATA->maximized : sc<uint8_t>(MAXIMIZE_NONE);
 }
 
 uint8_t CWindowStack::tiled(PHLWINDOW w) const {
     const auto DATA = find(w);
-    return DATA ? DATA->tiled : TILE_NONE;
+    return DATA ? DATA->tiled : sc<uint8_t>(TILE_NONE);
 }
 
 std::optional<CBox> CWindowStack::restoreBox(PHLWINDOW w) const {
@@ -192,7 +192,7 @@ void CWindowStack::toggleMaximized(PHLWINDOW w, uint8_t mode) {
     if (!w)
         return;
 
-    setMaximized(w, maximized(w) == mode ? MAXIMIZE_NONE : mode);
+    setMaximized(w, maximized(w) == mode ? sc<uint8_t>(MAXIMIZE_NONE) : mode);
 }
 
 void CWindowStack::setTiled(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor) {

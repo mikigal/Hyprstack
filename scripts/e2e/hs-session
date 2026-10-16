@@ -56,8 +56,7 @@ cmd_start() {
 
     # shellcheck source=lib.sh
     source "$REPO_ROOT/scripts/e2e/lib.sh"
-    local mode
-    mode="$(hs_setup_backend)" || exit 1
+    hs_setup_backend || exit 1
 
     # leftovers (e.g. from a crashed hyprtester run); desktop sessions are never touched
     hs_kill_test_compositors
@@ -138,7 +137,7 @@ EOF
         WAYLAND_DISPLAY="$wl" setsid quickshell -p "$REPO_ROOT/scripts/e2e/dev-shell" > "$STATE_DIR/client-quickshell.log" 2>&1 < /dev/null &
     fi
 
-    echo "started ($mode) pid=$pid sig=$sig wayland=$wl${vnc:+ vnc=127.0.0.1:$vnc}"
+    echo "started ($HS_MODE) pid=$pid sig=$sig wayland=$wl${vnc:+ vnc=127.0.0.1:$vnc}"
 }
 
 cmd_stop() {
