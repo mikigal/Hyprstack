@@ -6,6 +6,8 @@ Drop-in zamiennik: ta sama binarka `Hyprland`, `hyprctl`, IPC i config w Lua —
 
 Projekt, decyzje i stan prac: [DESIGN.md](DESIGN.md).
 
+![Hyprstack: quick-tile, belki SSD, okno CSD (GTK), X11, roboczy taskbar](screenshot.png)
+
 ## Co działa
 
 | | |
