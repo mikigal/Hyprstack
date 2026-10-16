@@ -307,27 +307,122 @@ bool CWindowStack::minimized(PHLWINDOW w) const {
     return w && w->isMinimized();
 }
 
-void CWindowStack::setMinimized(PHLWINDOW w, bool minimize) {
-    if (!w || !w->mapped() || !windowIsStacking(w) || w->isMinimized() == minimize)
+static bool animateMinimize() {
+    static auto PANIMATIONS = CConfigValue<Config::INTEGER>("animations:enabled");
+    static auto PANIMATE    = CConfigValue<Config::INTEGER>("stacking:minimize_animation");
+    return *PANIMATIONS && *PANIMATE;
+}
+
+// where a minimizing window shrinks to: its taskbar button, or the bottom of its monitor
+CBox CWindowStack::minimizeTargetFor(PHLWINDOW w) {
+    const auto DATA = find(w);
+    if (DATA && DATA->iconRect)
+        return *DATA->iconRect;
+
+    const auto BOX    = w->layoutTarget() ? w->layoutTarget()->position() : CBox{};
+    const auto MON    = w->m_monitor.lock();
+    const auto BOTTOM = MON ? MON->logicalBox().y + MON->logicalBox().h : BOX.y + BOX.h;
+    return CBox{BOX.middle().x - BOX.w / 8.0, BOTTOM - BOX.h / 8.0, BOX.w / 4.0, BOX.h / 4.0};
+}
+
+void CWindowStack::finishMinimize(PHLWINDOW w) {
+    auto& DATA = data(w);
+    if (!DATA.minimizing || !w->mapped())
         return;
 
-    const bool WAS_FOCUSED = Desktop::focusState()->window() == w;
+    DATA.minimizing = false;
 
-    w->setMinimized(minimize);
-    w->backend().setMinimized(minimize);
+    w->setMinimized(true);
+    w->backend().setMinimized(true);
+
+    // put the (now hidden) window back where it belongs, ready to be restored
+    if (w->layoutTarget()) {
+        const auto BOX = w->layoutTarget()->position();
+        w->positionAnimation()->setValueAndWarp(BOX.pos());
+        w->sizeAnimation()->setValueAndWarp(BOX.size());
+    }
+    w->presentation().alpha(Desktop::View::WINDOW_ALPHA_FADE)->setValueAndWarp(1.F);
     g_pHyprRenderer->damageWindow(w);
 
+    IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},1", rc<uintptr_t>(w.get()))});
+    Event::bus()->m_events.window.minimize.emit(w, true);
+}
+
+void CWindowStack::setMinimized(PHLWINDOW w, bool minimize) {
+    if (!w || !w->mapped() || !windowIsStacking(w))
+        return;
+
+    auto& DATA = data(w);
+
     if (minimize) {
-        if (WAS_FOCUSED)
+        if (w->isMinimized() || DATA.minimizing)
+            return;
+
+        if (Desktop::focusState()->window() == w)
             focusNextAfter(w);
-    } else {
-        endShowDesktop();
-        Desktop::windowState()->raise(w);
-        Desktop::focusState()->fullWindowFocus(w, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
+
+        if (!animateMinimize() || !w->layoutTarget()) {
+            DATA.minimizing = true;
+            finishMinimize(w);
+            return;
+        }
+
+        // shrink into the taskbar button and fade out, hide when done
+        DATA.minimizing         = true;
+        const auto TARGET       = minimizeTargetFor(w);
+        *w->positionAnimation() = TARGET.pos();
+        *w->sizeAnimation()     = TARGET.size();
+
+        auto& ALPHA = w->presentation().alpha(Desktop::View::WINDOW_ALPHA_FADE);
+        *ALPHA      = 0.F;
+        ALPHA->setCallbackOnEnd([this, weak = PHLWINDOWREF{w}](auto) {
+            if (const auto W = weak.lock(); W)
+                finishMinimize(W);
+        });
+        return;
     }
 
-    IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},{}", rc<uintptr_t>(w.get()), minimize ? 1 : 0)});
-    Event::bus()->m_events.window.minimize.emit(w, minimize);
+    // restore
+    const bool WAS_MINIMIZING = DATA.minimizing;
+    if (!w->isMinimized() && !WAS_MINIMIZING)
+        return;
+
+    DATA.minimizing = false;
+    endShowDesktop();
+
+    if (!WAS_MINIMIZING) {
+        w->setMinimized(false);
+        w->backend().setMinimized(false);
+
+        // grow back out of the taskbar button
+        if (animateMinimize() && w->layoutTarget()) {
+            const auto FROM = minimizeTargetFor(w);
+            w->positionAnimation()->setValueAndWarp(FROM.pos());
+            w->sizeAnimation()->setValueAndWarp(FROM.size());
+            w->presentation().alpha(Desktop::View::WINDOW_ALPHA_FADE)->setValueAndWarp(0.F);
+        }
+    }
+
+    if (w->layoutTarget()) {
+        const auto BOX          = w->layoutTarget()->position();
+        *w->positionAnimation() = BOX.pos();
+        *w->sizeAnimation()     = BOX.size();
+    }
+    *w->presentation().alpha(Desktop::View::WINDOW_ALPHA_FADE) = 1.F;
+
+    Desktop::windowState()->raise(w);
+    Desktop::focusState()->fullWindowFocus(w, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
+    g_pHyprRenderer->damageWindow(w);
+
+    if (!WAS_MINIMIZING) {
+        IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},0", rc<uintptr_t>(w.get()))});
+        Event::bus()->m_events.window.minimize.emit(w, false);
+    }
+}
+
+void CWindowStack::setIconRect(PHLWINDOW w, std::optional<CBox> rect) {
+    if (w)
+        data(w).iconRect = rect;
 }
 
 void CWindowStack::focusNextAfter(PHLWINDOW w) {
@@ -438,7 +533,7 @@ void CWindowStack::toggleShowDesktop() {
     } else {
         // restore bottom to top so the stacking order survives, the topmost ends up focused
         for (const auto& ref : m_hiddenByShowDesktop) {
-            if (const auto W = ref.lock(); W && W->isMinimized())
+            if (const auto W = ref.lock(); W && (W->isMinimized() || data(W).minimizing))
                 setMinimized(W, false);
         }
 

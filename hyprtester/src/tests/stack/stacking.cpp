@@ -5,7 +5,9 @@
 #include "../shared.hpp"
 
 #include <filesystem>
+#include <chrono>
 #include <format>
+#include <thread>
 #include <unistd.h>
 
 using namespace StackTest;
@@ -380,4 +382,34 @@ TEST_CASE(stackRememberGeometry) {
 
     leaveStacking();
     std::filesystem::remove(FILE);
+}
+
+TEST_CASE(stackMinimizeAnimated) {
+    enterStacking();
+    OK(getFromSocket("/eval hl.config({ animations = { enabled = true } })"));
+
+    SPAWN_FOOT(a, "stack-a");
+    SPAWN_FOOT(b, "stack-b");
+    const auto BEFORE = window("stack-b").box;
+
+    OK(getFromSocket("/dispatch hl.dsp.window.minimize({ window = 'class:stack-b' })"));
+    // focus moves away right away, the window hides once the animation is done
+    EXPECT(activeClass(), "stack-a");
+    for (int i = 0; i < 60 && !window("stack-b").minimized; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    EXPECT(window("stack-b").minimized, true);
+    EXPECT(window("stack-b").hidden, true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:stack-b' })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+    const auto AFTER = window("stack-b");
+    EXPECT(AFTER.minimized, false);
+    EXPECT(AFTER.box.x, BEFORE.x);
+    EXPECT(AFTER.box.y, BEFORE.y);
+    EXPECT(AFTER.box.w, BEFORE.w);
+    EXPECT(AFTER.box.h, BEFORE.h);
+
+    leaveStacking();
 }

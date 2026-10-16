@@ -1,4 +1,6 @@
 #include "ForeignToplevelWlr.hpp"
+#include "core/Compositor.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../stack/WindowStack.hpp"
 #include "core/Output.hpp"
 #include <algorithm>
@@ -105,6 +107,21 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         Stack::windowStack()->requestMinimize(PWINDOW, false);
+    });
+
+    // Hyprstack: the taskbar button, minimize animates into it
+    m_resource->setSetRectangle([this](CZwlrForeignToplevelHandleV1* p, wl_resource* surface, int32_t x, int32_t y, int32_t w, int32_t h) {
+        const auto PWINDOW = m_window.lock();
+        if UNLIKELY (!PWINDOW)
+            return;
+
+        const auto HLSURFACE = Desktop::View::CWLSurface::fromResource(CWLSurfaceResource::fromResource(surface));
+        const auto BOX       = HLSURFACE ? HLSURFACE->getSurfaceBoxGlobal() : std::nullopt;
+
+        if (w <= 0 || h <= 0 || !BOX)
+            Stack::windowStack()->setIconRect(PWINDOW, std::nullopt);
+        else
+            Stack::windowStack()->setIconRect(PWINDOW, CBox{BOX->pos() + Vector2D{sc<double>(x), sc<double>(y)}, Vector2D{sc<double>(w), sc<double>(h)}});
     });
 
     m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {

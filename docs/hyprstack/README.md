@@ -35,6 +35,7 @@ Nowy użytkownik dostaje `example/hyprstack.lua`. Opcje specyficzne dla forka (`
 | `stacking.decorate_csd` | `false` | ramka/cień/zaokrąglenia także dla okien CSD |
 | `stacking.remember_geometry` | `all` | zapamiętywanie geometrii okien per aplikacja: `none` / `size` / `all` (rozmiar i pozycja na tym samym monitorze) |
 | `stacking.remember_geometry_file` | `""` | plik pamięci (domyślnie `$XDG_STATE_HOME/hyprstack/window-geometry`) |
+| `stacking.minimize_animation` | `true` | minimalizacja zwija okno do przycisku na taskbarze (`set_rectangle` z foreign-toplevel) |
 | `stacking.window_menu` | `true` | informuje klientów, że jest menu okna (rysuje je shell, event `windowmenu`) |
 | `stacking.titlebar.*` | | `enabled`, `height`, `font_family`, `font_size`, `text_align`, `padding`, `buttons`, `button_width`, `double_click`, kolory `col.*` |
 | `stacking.quick_tile.*` | | `enabled`, `edge_threshold`, `corner_size`, `top_action` (`maximize`/`tile`/`none`), `col.preview`, `col.preview_border` |

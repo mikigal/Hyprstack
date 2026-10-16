@@ -38,7 +38,13 @@ PanelWindow {
                 opacity: modelData.minimized ? 0.5 : 1.0
 
                 // where minimize animations should go
-                Component.onCompleted: modelData.setRectangle(bar, Qt.rect(x, y, width, height))
+                function updateRect() {
+                    const p = mapToItem(bar.contentItem, 0, 0);
+                    modelData.setRectangle(bar, Qt.rect(p.x, p.y, width, height));
+                }
+                Component.onCompleted: updateRect()
+                onXChanged: updateRect()
+                onWidthChanged: updateRect()
 
                 Text {
                     anchors.fill: parent

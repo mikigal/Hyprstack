@@ -165,6 +165,8 @@ niewyjaśnione, ręczne odtworzenie daje identyczny wynik na obu binarkach). Til
 - Menu okna: kompozytor wysyła `windowmenu>>ADDR,X,Y` (prawy klik na belce, `hl.dsp.window.menu()` /
   Alt+Spacja, `xdg_toplevel.show_window_menu`), ogłasza capability `WINDOW_MENU`; menu rysuje shell
   (roboczy: `scripts/e2e/dev-shell/WindowMenu.qml`).
+- Animacja minimalizacji/przywracania: okno zwija się do prostokąta przycisku na taskbarze
+  (`wlr-foreign-toplevel set_rectangle`, wcześniej ignorowane) i zanika, ukrywa się po animacji.
 - Pamięć geometrii per app-id (`src/stack/GeometryMemory.*`), plik w `$XDG_STATE_HOME/hyprstack/`.
 
 ### Faza 5 — domyślny config (zrobione)
@@ -191,7 +193,7 @@ niewyjaśnione, ręczne odtworzenie daje identyczny wynik na obu binarkach). Til
 | `config/lua/bindings/LuaBindingsDispatchers.cpp` | rejestracja dispatcherów stack |
 | `desktop/view/window/WaylandBackend.cpp` | prawdziwy stan maximized, jawne żądania maximize |
 | `protocols/XDGShell.cpp` | brak wymuszonego `maximized` przy mapowaniu w trybie stacking |
-| `protocols/ForeignToplevelWlr.cpp` | minimize przez `Stack`, stany MAXIMIZED/MINIMIZED |
+| `protocols/ForeignToplevelWlr.cpp` | minimize przez `Stack`, stany MAXIMIZED/MINIMIZED, `set_rectangle` |
 | `ipc/s1/Commands.cpp` | pola stack w `clients` |
 | `hyprtester/src/main.cpp` | grupa testów `stack` |
 | `desktop/view/window/WindowPresentation.cpp` | doczepienie `CTitlebarDecoration` |

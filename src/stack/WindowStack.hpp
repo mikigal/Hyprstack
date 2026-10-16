@@ -45,6 +45,10 @@ namespace Stack {
 
         // window box (global, without decorations) to go back to when leaving maximize / quick-tile
         std::optional<CBox> restoreBox;
+
+        // the window's taskbar button (wlr-foreign-toplevel set_rectangle), minimize animates into it
+        std::optional<CBox> iconRect;
+        bool                minimizing = false;
     };
 
     // Hyprstack: per-window state of the stacking window manager — maximize, minimize,
@@ -92,6 +96,9 @@ namespace Stack {
         // forwards the request to IPC/event listeners, as upstream Hyprland does.
         void requestMinimize(PHLWINDOW w, bool minimized);
 
+        // taskbar button of a window, global coordinates (nullopt: unknown)
+        void setIconRect(PHLWINDOW w, std::optional<CBox> rect);
+
         // Move a window to the neighboring monitor in a direction, keeping its relative position
         // and its maximize / quick-tile state (Super + Shift + arrows on Windows)
         void moveToMonitor(PHLWINDOW w, Math::eDirection dir);
@@ -124,6 +131,8 @@ namespace Stack {
         void                                     postGeometryState(PHLWINDOW w);
         void                                     applyGeometryState(PHLWINDOW w, PHLMONITOR monitor = nullptr);
         void                                     focusNextAfter(PHLWINDOW w);
+        void                                     finishMinimize(PHLWINDOW w);
+        CBox                                     minimizeTargetFor(PHLWINDOW w);
 
         std::map<PHLWINDOWREF, SWindowStackData> m_data;
 

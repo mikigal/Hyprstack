@@ -19,6 +19,7 @@ std::vector<SP<IValue>> Stack::Config::getConfigValues() {
         MS<String>("stacking:remember_geometry", "remember window geometry per app when it closes. [none/size/all] (all = size and position)", "all",
                    {.validator = strChoice({"none", "size", "all"})}),
         MS<String>("stacking:remember_geometry_file", "where remembered geometry is stored, empty for $XDG_STATE_HOME/hyprstack/window-geometry", ""),
+        MS<Bool>("stacking:minimize_animation", "minimizing shrinks the window into its taskbar button (needs animations:enabled)", true),
         MS<Bool>("stacking:window_menu", "tell clients a window menu exists (the shell draws it, see the windowmenu event)", true),
         MS<Bool>("stacking:decorate_csd", "draw border, shadow and rounding around windows that decorate themselves (GTK & co.)", false),
 
