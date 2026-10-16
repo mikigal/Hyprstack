@@ -16,6 +16,7 @@
 #include "../layout/target/Target.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
 #include "../render/Renderer.hpp"
 #include "../workspace/HLWorkspace.hpp"
 
@@ -346,6 +347,48 @@ void CWindowStack::focusNextAfter(PHLWINDOW w) {
         Desktop::focusState()->fullWindowFocus(fallback, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
     else
         Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
+}
+
+void CWindowStack::moveToMonitor(PHLWINDOW w, Math::eDirection dir) {
+    if (!w || !w->layoutTarget() || !windowIsStacking(w) || !w->m_monitor)
+        return;
+
+    const auto FROM = w->m_monitor.lock();
+    const auto TO   = State::monitorState()->query().inDirection(dir).relativeTo(FROM).run();
+    if (!TO || TO == FROM || !TO->m_activeWorkspace)
+        return;
+
+    const auto TILED = tiled(w);
+    if (TILED != TILE_NONE) {
+        setTiled(w, TILED, TO);
+        return;
+    }
+
+    // keep the relative position of the frame within the work area
+    const auto EXTENTS = w->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS);
+    const auto OLD_WA  = workAreaFor(w, FROM);
+    const auto NEW_WA  = workAreaFor(w, TO);
+    const auto FRAME   = w->layoutTarget()->position().copy().addExtents(EXTENTS);
+    const auto REL     = (FRAME.pos() - OLD_WA.pos()) / OLD_WA.size();
+
+    auto&      DATA = data(w);
+    if (DATA.restoreBox)
+        DATA.restoreBox->translate(NEW_WA.pos() - OLD_WA.pos());
+
+    (void)Config::Actions::moveToWorkspace(TO->m_activeWorkspace, true, w);
+
+    if (maximized(w) != MAXIMIZE_NONE) {
+        refitGeometry(w);
+        return;
+    }
+
+    CBox frame = {NEW_WA.pos() + REL * NEW_WA.size(), FRAME.size()};
+    frame.w    = std::min(frame.w, NEW_WA.w);
+    frame.h    = std::min(frame.h, NEW_WA.h);
+    frame.x    = std::clamp(frame.x, NEW_WA.x, NEW_WA.x + NEW_WA.w - frame.w);
+    frame.y    = std::clamp(frame.y, NEW_WA.y, NEW_WA.y + NEW_WA.h - frame.h);
+
+    g_layoutManager->setTargetGeom(frame.addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight}), w->layoutTarget());
 }
 
 bool CWindowStack::showingDesktop() const {

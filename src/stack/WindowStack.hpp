@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../desktop/DesktopTypes.hpp"
+#include "../helpers/math/Direction.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -87,6 +88,10 @@ namespace Stack {
         // Minimize request from a client / foreign-toplevel. In non-stacking workspaces this only
         // forwards the request to IPC/event listeners, as upstream Hyprland does.
         void requestMinimize(PHLWINDOW w, bool minimized);
+
+        // Move a window to the neighboring monitor in a direction, keeping its relative position
+        // and its maximize / quick-tile state (Super + Shift + arrows on Windows)
+        void moveToMonitor(PHLWINDOW w, Math::eDirection dir);
 
         // "show desktop": minimize every visible window; toggling again restores them.
         // Restoring or opening any window ends the mode (like on Windows).

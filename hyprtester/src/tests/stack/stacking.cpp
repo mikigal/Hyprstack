@@ -323,3 +323,25 @@ TEST_CASE(stackShowDesktop) {
 
     leaveStacking();
 }
+
+TEST_CASE(stackMoveToMonitor) {
+    enterStacking();
+    SPAWN_FOOT(a, "stack-a");
+
+    const auto AREA   = workAreaOf("stack-a");
+    const auto BEFORE = window("stack-a").box;
+    placeMonitorRightOf("stack-a");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move_to_monitor({ direction = 'right', window = 'class:stack-a' })"));
+    Tests::sync();
+
+    // same size, same relative position, one monitor to the right
+    const auto AFTER = window("stack-a").box;
+    EXPECT(AFTER.w, BEFORE.w);
+    EXPECT(AFTER.h, BEFORE.h);
+    EXPECT_MAX_DELTA(AFTER.x - AREA.w, BEFORE.x, 2);
+    EXPECT_MAX_DELTA(AFTER.y, BEFORE.y, 2);
+    EXPECT_NOT(monitorNameOf("stack-a"), "");
+
+    leaveStacking();
+}

@@ -135,6 +135,25 @@ static int hlWindowSnap(lua_State* L) {
     return 1;
 }
 
+static int dsp_moveToMonitor(lua_State* L) {
+    return Internal::checkResult(L, Stack::Actions::moveToMonitor(sc<Math::eDirection>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
+}
+
+// hl.dsp.window.move_to_monitor({ direction = "left"|"right"|"up"|"down", window = ... })
+static int hlWindowMoveToMonitor(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.dsp.window.move_to_monitor: expected a table { direction, window? }");
+
+    const auto DIR = Math::fromChar(Internal::tableOptStr(L, 1, "direction").value_or(" ")[0]);
+    if (DIR == Math::DIRECTION_DEFAULT)
+        return Internal::configError(L, "hl.dsp.window.move_to_monitor: invalid direction (expected left/right/up/down)");
+
+    lua_pushnumber(L, (int)DIR);
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_moveToMonitor, 2);
+    return 1;
+}
+
 void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "minimize", hlWindowMinimize, 1);
     Internal::setDispatcherFn(L, "maximize", hlWindowMaximize, 1);
@@ -142,6 +161,7 @@ void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "keep_below", hlWindowKeepBelow, 1);
     Internal::setDispatcherFn(L, "tile", hlWindowTile, 1);
     Internal::setDispatcherFn(L, "snap", hlWindowSnap, 1);
+    Internal::setDispatcherFn(L, "move_to_monitor", hlWindowMoveToMonitor, 1);
 }
 
 static int dsp_showDesktop(lua_State* L) {

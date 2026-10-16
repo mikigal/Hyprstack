@@ -94,3 +94,14 @@ ActionResult Stack::Actions::showDesktop() {
     windowStack()->toggleShowDesktop();
     return {};
 }
+
+ActionResult Stack::Actions::moveToMonitor(Math::eDirection dir, std::optional<PHLWINDOW> w) {
+    const auto WINDOW = xtract(w);
+    if (!WINDOW)
+        return noTarget();
+    if (!windowIsStacking(WINDOW))
+        return notStacking();
+
+    windowStack()->moveToMonitor(WINDOW, dir);
+    return {};
+}

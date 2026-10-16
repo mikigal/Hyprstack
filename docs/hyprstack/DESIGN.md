@@ -138,6 +138,15 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
   czasem gubi puszczenie Alt (fokus klawiatury layer-surface).
 - TODO: menu okna (prawy klik na belce / `xdg_toplevel.show_window_menu`) — po stronie shella.
 
+### Faza 5 — domyślny config (zrobione)
+
+- `example/hyprstack.lua` jest osadzany jako generowany domyślny config (zamiast `example/hyprland.lua`):
+  layout `stacking`, brak gapsów, ramka 1 px, zaokrąglenia 8, resize z krawędzi, magnetyczne krawędzie,
+  `follow_mouse = 2` (click-to-focus, wskaźnik nadal trafia do okna pod kursorem), `cursor:no_warps`,
+  `focus_on_activate`. Skróty jak w Windows: Win+←/→/↑/↓ (snap), Win+Shift+←/→
+  (`hl.dsp.window.move_to_monitor`), Win+D, Alt+F4, Alt+Tab (globalny skrót dla shella),
+  Super+LPM/PPM przesuwanie/resize. Bez bindów workspace'ów.
+
 ### Haki w plikach upstreamu (sprawdzać przy merge'ach)
 
 | Plik | Hak |
@@ -165,3 +174,4 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 | `layout/supplementary/DragController.cpp` | drag-restore maximized/tiled, podgląd quick-tile |
 | `managers/input/InputManager.cpp` | ramka resize-on-border obejmuje belkę |
 | `desktop/state/FocusState.cpp` | fokus zminimalizowanego okna je przywraca |
+| `config/lua/DefaultConfig.hpp` | osadzany `example/hyprstack.lua` |
