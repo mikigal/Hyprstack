@@ -1,4 +1,5 @@
 #include "InputManager.hpp"
+#include "../../stack/decoration/DecorationPolicy.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../Compositor.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -861,10 +862,11 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
     if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED &&
         (!w || !w->backend().traits().overrideRedirect)) {
         if (w && !Fullscreen::controller()->isFullscreen(w)) {
-            const CBox real = w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+            // Hyprstack: the titlebar is part of the frame the border grab surrounds
+            const CBox real = Stack::resizeFrame(w, w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT));
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
-            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y))) &&
+            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || Stack::inResizeCorner(w, mouseCoords))) &&
                 !w->hasPopupAt(mouseCoords)) {
                 if (!g_layoutManager->dragController()->target())
                     g_layoutManager->beginDragTarget(w->layoutTarget(), MBIND_RESIZE);
@@ -2196,7 +2198,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // give a small leeway (10 px) for corner icon
     const auto           CORNER           = ROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
-    CBox                 box              = w->getWindowMainSurfaceBox();
+    CBox                 box              = Stack::resizeFrame(w, w->getWindowMainSurfaceBox()); // Hyprstack: include the titlebar
     eBorderIconDirection direction        = BORDERICON_NONE;
     CBox                 boxFullGrabInput = {box.x - *PEXTENDBORDERGRAB - BORDERSIZE, box.y - *PEXTENDBORDERGRAB - BORDERSIZE, box.width + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE),
                                              box.height + 2 * (*PEXTENDBORDERGRAB + BORDERSIZE)};
@@ -2223,7 +2225,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
             direction = BORDERICON_NONE;
         else {
             if (box.containsPoint(mouseCoords)) {
-                if (!w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                if (!Stack::inResizeCorner(w, mouseCoords)) {
                     direction = BORDERICON_NONE;
                 } else {
                     if (mouseCoords.y < box.y + CORNER) {

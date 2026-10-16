@@ -1,4 +1,5 @@
 #include "DragController.hpp"
+#include "../../stack/WindowStack.hpp"
 #include "../../desktop/view/window/WindowEffectsController.hpp"
 #include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
@@ -399,6 +400,14 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
         previousFull = MOTIONWINDOW->getFullWindowBoundingBox();
 
     if (m_dragMode == MBIND_MOVE) {
+
+        // Hyprstack: dragging a maximized window restores it, keeping the grab point proportional
+        if (mousePos.distance(m_beginDragXY) > 4) {
+            if (const auto HOTSPOT = Stack::windowStack()->restoreForDrag(DRAGGINGTARGET->window(), m_dragHotspot); HOTSPOT) {
+                m_dragHotspot     = *HOTSPOT;
+                m_beginDragSizeXY = DRAGGINGTARGET->position().size();
+            }
+        }
 
         Vector2D newPos  = mousePos - m_dragHotspot;
         Vector2D newSize = DRAGGINGTARGET->position().size();

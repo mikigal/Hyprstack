@@ -19,4 +19,11 @@ namespace Stack {
     // How far the main surface reaches outside its xdg window geometry (CSD shadows / resize
     // margins), in logical pixels, scaled to the window's current (possibly animated) size.
     std::optional<SBoxExtents> surfaceOverflow(PHLWINDOW w);
+
+    // The box resize-on-border grabs around: the window plus its titlebar, if it has one.
+    CBox resizeFrame(PHLWINDOW w, const CBox& windowBox);
+
+    // A point inside the window that still counts as its border (rounded corners). The top
+    // corners of a window with a titlebar are covered by the titlebar.
+    bool inResizeCorner(PHLWINDOW w, const Vector2D& pos);
 }

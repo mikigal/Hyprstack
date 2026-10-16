@@ -163,3 +163,80 @@ TEST_CASE(stackPlacementKeepsTitlebarOnScreen) {
 
     leaveStacking();
 }
+
+TEST_CASE(stackDragMaximizedRestores) {
+    enterStacking();
+
+    SPAWN_FOOT(a, "stack-a", 60, 14);
+
+    const auto ORIGINAL = window("stack-a").box;
+    OK(getFromSocket("/dispatch hl.dsp.window.maximize({ window = 'class:stack-a' })"));
+    Tests::sync();
+
+    // grab the titlebar at a quarter of its width and pull the window down
+    const auto MAX = window("stack-a").box;
+    const int  X = MAX.x + MAX.w / 4, Y = MAX.y - TITLEBAR_HEIGHT / 2;
+    moveCursor(X, Y);
+    press();
+    moveCursor(X, Y + 20);
+    moveCursor(X, Y + 120);
+    release();
+    Tests::sync();
+
+    const auto AFTER = window("stack-a");
+    EXPECT(AFTER.maximized, 0);
+    EXPECT(AFTER.box.w, ORIGINAL.w);
+    EXPECT(AFTER.box.h, ORIGINAL.h);
+    // the cursor is still at a quarter of the (now smaller) titlebar
+    EXPECT_MAX_DELTA(X - AFTER.box.x, AFTER.box.w / 4, 3);
+    EXPECT_MAX_DELTA(Y + 120 - AFTER.box.y, -TITLEBAR_HEIGHT / 2, 3);
+
+    leaveStacking();
+}
+
+// resize drags are throttled to the monitor refresh rate, give each motion a frame
+static void moveCursorSlow(int x, int y) {
+    moveCursor(x, y);
+    std::this_thread::sleep_for(std::chrono::milliseconds(40));
+}
+
+TEST_CASE(stackResizeOnBorderAroundTitlebar) {
+    enterStacking();
+    OK(getFromSocket("/eval hl.config({ general = { resize_on_border = true, extend_border_grab_area = 10 } })"));
+
+    SPAWN_FOOT(a, "stack-a", 60, 14);
+
+    // top edge: the grab area sits above the titlebar, not inside it
+    {
+        const auto BEFORE = window("stack-a").box;
+        const int  X = BEFORE.x + BEFORE.w / 2, Y = BEFORE.y - TITLEBAR_HEIGHT - 4;
+        moveCursorSlow(X, Y);
+        press();
+        moveCursorSlow(X, Y - 10);
+        moveCursorSlow(X, Y - 50);
+        release();
+        Tests::sync();
+
+        const auto AFTER = window("stack-a").box;
+        EXPECT_MAX_DELTA(AFTER.h - BEFORE.h, 50, 20); // terminals snap to their cell grid
+        EXPECT_MAX_DELTA(AFTER.y + AFTER.h, BEFORE.y + BEFORE.h, 2);
+    }
+
+    // right edge
+    {
+        const auto BEFORE = window("stack-a").box;
+        const int  X = BEFORE.x + BEFORE.w + 4, Y = BEFORE.y + BEFORE.h / 2;
+        moveCursorSlow(X, Y);
+        press();
+        moveCursorSlow(X + 10, Y);
+        moveCursorSlow(X + 80, Y);
+        release();
+        Tests::sync();
+
+        const auto AFTER = window("stack-a").box;
+        EXPECT_MAX_DELTA(AFTER.w - BEFORE.w, 80, 20);
+        EXPECT(AFTER.x, BEFORE.x);
+    }
+
+    leaveStacking();
+}

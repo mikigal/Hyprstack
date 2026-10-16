@@ -1,10 +1,12 @@
 #include "DecorationPolicy.hpp"
+#include "TitlebarDecoration.hpp"
 #include "../StackMode.hpp"
 
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/rule/windowRule/WindowRuleApplicator.hpp"
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../protocols/ServerDecorationKDE.hpp"
 #include "../../protocols/XDGDecoration.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -30,6 +32,22 @@ void Stack::applyDecorationPolicy(PHLWINDOW w) {
     // lowest priority: window rules still win
     w->m_ruleApplicator->decorate().set(false, Desktop::Types::PRIORITY_LAYOUT);
     w->m_ruleApplicator->rounding().set(0, Desktop::Types::PRIORITY_LAYOUT);
+}
+
+CBox Stack::resizeFrame(PHLWINDOW w, const CBox& windowBox) {
+    static auto PHEIGHT = CConfigValue<Config::INTEGER>("stacking:titlebar:height");
+
+    if (!wantsTitlebar(w))
+        return windowBox;
+
+    return CBox{windowBox.x, windowBox.y - *PHEIGHT, windowBox.w, windowBox.h + *PHEIGHT};
+}
+
+bool Stack::inResizeCorner(PHLWINDOW w, const Vector2D& pos) {
+    if (!w->presentation().isInCurvedCorner(pos.x, pos.y))
+        return false;
+
+    return !wantsTitlebar(w) || pos.y > w->getWindowMainSurfaceBox().middle().y;
 }
 
 std::optional<SBoxExtents> Stack::surfaceOverflow(PHLWINDOW w) {

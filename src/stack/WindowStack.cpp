@@ -151,6 +151,21 @@ void CWindowStack::dropMaximized(PHLWINDOW w) {
     postMaximizeState(w);
 }
 
+std::optional<Vector2D> CWindowStack::restoreForDrag(PHLWINDOW w, const Vector2D& hotspot) {
+    if (!w || !w->layoutTarget() || maximized(w) == MAXIMIZE_NONE)
+        return std::nullopt;
+
+    const auto CURRENT = w->layoutTarget()->position();
+    const auto RESTORE = data(w).restoreBox.value_or(CURRENT);
+
+    dropMaximized(w);
+
+    const Vector2D NEW_HOTSPOT = {CURRENT.w > 0 ? hotspot.x / CURRENT.w * RESTORE.w : hotspot.x, hotspot.y};
+    w->layoutTarget()->setPositionGlobal(CBox{CURRENT.pos() + hotspot - NEW_HOTSPOT, RESTORE.size()});
+
+    return NEW_HOTSPOT;
+}
+
 void CWindowStack::postMaximizeState(PHLWINDOW w) {
     IPC::Socket2::sock()->postEvent({.event = "maximized", .data = std::format("{:x},{}", rc<uintptr_t>(w.get()), maximized(w))});
 

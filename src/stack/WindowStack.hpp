@@ -55,6 +55,11 @@ namespace Stack {
         // forget the maximized state without touching the geometry (manual move / resize)
         void dropMaximized(PHLWINDOW w);
 
+        // A maximized window is being dragged: leave maximize, shrink to the restore size and
+        // return the new grab point (relative to the window) so the cursor keeps its relative
+        // position along the titlebar. nullopt if the window wasn't maximized.
+        std::optional<Vector2D> restoreForDrag(PHLWINDOW w, const Vector2D& hotspot);
+
         // minimize
         void setMinimized(PHLWINDOW w, bool minimized);
         bool minimized(PHLWINDOW w) const;
