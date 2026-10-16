@@ -20,6 +20,9 @@ namespace Stack {
     // margins), in logical pixels, scaled to the window's current (possibly animated) size.
     std::optional<SBoxExtents> surfaceOverflow(PHLWINDOW w);
 
+    // global position of the window's main surface origin (the frame minus the overflow)
+    Vector2D mainSurfaceOrigin(PHLWINDOW w);
+
     // The box resize-on-border grabs around: the window plus its titlebar, if it has one.
     CBox resizeFrame(PHLWINDOW w, const CBox& windowBox);
 

@@ -63,6 +63,25 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 4. Integracja z shellem (foreign-toplevel, IPC, MRU, miniatury) + roboczy shell w Quickshellu do testów.
 5. Domyślny config w stylu Windows, ukrycie tilingu.
 
+### Zgodność z prawdziwymi aplikacjami (2026-10-16)
+
+Przetestowane na VM: Firefox, Chromium, VS Code (Electron), Kate, Dolphin, LibreOffice, GIMP, gtk4-demo, foot, kitty, xterm.
+Znalezione i naprawione:
+- Klient jawnie proszący o client-side (Firefox przez KDE server-decoration, `foot -o csd.preferred=client`)
+  dostawał wymuszone server-side i podwójną belkę — w trybie stacking jawna preferencja klienta wygrywa.
+- Input dla okien z offsetem geometrii xdg: `windowSurfaceAt`, fallbacki w InputManager i
+  `CWLSurface::getSurfaceBoxGlobal` (przytrzymany przycisk) liczyły współrzędne bez offsetu → kliknięcia
+  trafiały w margines cieni (Firefox zaczynał resize zamiast przesuwania).
+- Popupy okien CSD rysowane z podwójnie odjętym offsetem (menu przesunięte w lewo/górę).
+- Blur pod marginesem cieni CSD dawał widoczny prostokąt — wyłączony dla takich powierzchni.
+- `unset_maximized` od aplikacji był ignorowany (ścieżka fullscreen) — żądania maximize okien stacking
+  idą prosto do `CWindowStack`.
+- `hl.dsp.cursor.move` nie wysyłał `wl_pointer.frame` → GTK/Firefox wstrzymywały zdarzenia (testy).
+- Dialogi mają w belce tylko "zamknij", okna o stałym rozmiarze bez "maksymalizuj".
+- Upstreamowe okienka `hyprland-welcome` / `hyprland-update-screen` wyłączone w trybie stacking.
+Uwagi: Firefox bez xdg-desktop-portal nie otwiera dialogów plików (to środowisko, nie kompozytor);
+Firefox sam zapamiętuje i przywraca swój rozmiar.
+
 ## Regresje względem upstreamu
 
 Porównanie (2026-10-16, chunked, te same warunki, `~/private/compare-suites.sh` na VM): 280 testów upstreamu.
@@ -182,3 +201,8 @@ niewyjaśnione, ręczne odtworzenie daje identyczny wynik na obu binarkach). Til
 | `managers/input/InputManager.cpp` | ramka resize-on-border obejmuje belkę |
 | `desktop/state/FocusState.cpp` | fokus zminimalizowanego okna je przywraca |
 | `config/lua/DefaultConfig.hpp` | osadzany `example/hyprstack.lua` |
+| `desktop/state/ViewHitTester.cpp`, `desktop/view/WLSurface.cpp` | offset geometrii xdg w inpucie |
+| `render/Renderer.cpp` (popupy, blur) | pozycja popupów okien stacking, brak blura pod cieniami CSD |
+| `desktop/view/window/Window.cpp` (`onUpdateState`) | żądania maximize okien stacking |
+| `config/shared/actions/ConfigActions.cpp` (`moveCursor`) | `wl_pointer.frame` po warpie |
+| `managers/WelcomeManager.cpp` | brak ekranu powitalnego w trybie stacking |

@@ -79,7 +79,7 @@ cmd_start() {
             if [[ "$defaultcfg" == "1" ]]; then
                 # the shipped config, minus its catch-all monitor rule (it would light up the VM's own display)
                 python3 -c 'import re,sys; print(re.sub(r"hl\.monitor\(\{\s*output\s*=\s*\"\".*?\}\)", "", open(sys.argv[1]).read(), count=1, flags=re.S))' "$REPO_ROOT/example/hyprstack.lua"
-                echo 'hl.config({ misc = { disable_watchdog_warning = true } })'
+                echo 'hl.config({ misc = { disable_watchdog_warning = true }, debug = { disable_logs = false, enable_stdout_logs = true } })'
             else
                 cat "$REPO_ROOT/scripts/e2e/session-base.lua"
             fi

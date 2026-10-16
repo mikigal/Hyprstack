@@ -26,13 +26,17 @@ namespace StackTest {
         int         maximized = 0;
         int         layer     = 1;
         int         tiled     = 0;
+        bool        titlebar  = false;
     };
 
     // switch the running compositor to stacking mode / restore the test config
     void                                                       enterStacking();
     void                                                       leaveStacking();
 
-    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnFoot(const std::string& cls, int cols = 50, int rows = 12);
+    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnFoot(const std::string& cls, int cols = 50, int rows = 12, const std::vector<std::string>& extraArgs = {});
+
+    // any client; waits until the window count grows
+    Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnClient(const std::string& binary, const std::vector<std::string>& args, int timeoutMs = 15000);
 
     SWindowInfo                                                window(const std::string& cls);
     std::string                                                activeClass();

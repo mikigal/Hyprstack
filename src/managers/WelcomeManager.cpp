@@ -1,4 +1,5 @@
 #include "WelcomeManager.hpp"
+#include "../stack/StackMode.hpp"
 #include "../Compositor.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../config/ConfigValue.hpp"
@@ -18,6 +19,12 @@ CWelcomeManager::CWelcomeManager() {
 
     if (g_pCompositor->m_safeMode) {
         LOG(Log::DEBUG, "[welcome] skipping, safe mode");
+        return;
+    }
+
+    // Hyprstack: the welcome app is about upstream Hyprland's tiling workflow
+    if (Stack::stackingIsDefault()) {
+        LOG(Log::DEBUG, "[welcome] skipping, stacking mode");
         return;
     }
 

@@ -34,6 +34,11 @@ void Stack::applyDecorationPolicy(PHLWINDOW w) {
     w->m_ruleApplicator->rounding().set(0, Desktop::Types::PRIORITY_LAYOUT);
 }
 
+Vector2D Stack::mainSurfaceOrigin(PHLWINDOW w) {
+    const auto OVERFLOW = surfaceOverflow(w);
+    return w->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) - (OVERFLOW ? OVERFLOW->topLeft : Vector2D{});
+}
+
 CBox Stack::resizeFrame(PHLWINDOW w, const CBox& windowBox) {
     static auto PHEIGHT = CConfigValue<Config::INTEGER>("stacking:titlebar:height");
 

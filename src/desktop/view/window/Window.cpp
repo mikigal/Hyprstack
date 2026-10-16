@@ -866,9 +866,17 @@ void CWindow::onUpdateState(const SBackendStateRequest& request) {
     if (request.minimized.value_or(false) && m_isMapped)
         Stack::windowStack()->requestMinimize(m_self.lock(), true);
 
+    // Hyprstack: maximize requests of mapped stacking windows are handled by the window stack
+    // (the fullscreen path only knows how to leave its own "maximized" fullscreen mode)
+    auto maximized = request.maximized;
+    if (maximized.has_value() && m_isMapped && Stack::windowIsStacking(m_self.lock()) && !m_fullscreenPolicy->requestSuppression().maximize) {
+        Stack::windowStack()->setMaximized(m_self.lock(), *maximized ? Stack::MAXIMIZE_FULL : Stack::MAXIMIZE_NONE);
+        maximized.reset();
+    }
+
     requestClientFullscreen({
         .fullscreen        = request.fullscreen,
-        .maximized         = request.maximized,
+        .maximized         = maximized,
         .fullscreenMonitor = request.fullscreenMonitor,
         .origin            = SClientFullscreenRequest::ORIGIN_BACKEND,
     });

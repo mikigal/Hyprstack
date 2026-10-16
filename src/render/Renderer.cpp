@@ -612,10 +612,11 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     renderdata.h     = textureBox.h;
 
     // Hyprstack: honor xdg window geometry, the surface may reach outside the frame (CSD shadows)
-    if (const auto OVERFLOW = Stack::surfaceOverflow(pWindow); OVERFLOW) {
-        renderdata.pos -= OVERFLOW->topLeft;
-        renderdata.w += OVERFLOW->topLeft.x + OVERFLOW->bottomRight.x;
-        renderdata.h += OVERFLOW->topLeft.y + OVERFLOW->bottomRight.y;
+    const auto SURFACE_OVERFLOW = Stack::surfaceOverflow(pWindow);
+    if (SURFACE_OVERFLOW) {
+        renderdata.pos -= SURFACE_OVERFLOW->topLeft;
+        renderdata.w += SURFACE_OVERFLOW->topLeft.x + SURFACE_OVERFLOW->bottomRight.x;
+        renderdata.h += SURFACE_OVERFLOW->topLeft.y + SURFACE_OVERFLOW->bottomRight.y;
     }
 
     if (ignorePosition) {
@@ -636,8 +637,9 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
         decorate && !pWindow->backend().traits().suggestsNoBorder && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
-    renderdata.blur          = !standalone && !ctx.m_renderingSnapshot && pWindow->shouldBlur(presentation);
-    renderdata.pWindow       = pWindow;
+    // Hyprstack: no blur behind CSD shadows, it would show as a box around the window
+    renderdata.blur    = !standalone && !ctx.m_renderingSnapshot && pWindow->shouldBlur(presentation) && !SURFACE_OVERFLOW;
+    renderdata.pWindow = pWindow;
 
     if (standalone) {
         renderdata.alpha     = 1.f;
@@ -805,7 +807,12 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
         if (!pWindow->backend().isX11()) {
             const auto GEOM = pWindow->backend().geometry().box;
 
-            renderdata.pos -= GEOM.pos();
+            // Hyprstack: popup coords are relative to the frame (the parent's window geometry),
+            // which is where stacking windows are placed — undo the main surface offset instead
+            if (SURFACE_OVERFLOW)
+                renderdata.pos += SURFACE_OVERFLOW->topLeft;
+            else
+                renderdata.pos -= GEOM.pos();
             renderdata.dontRound       = true; // don't round popups
             renderdata.pMonitor        = pMonitor;
             renderdata.squishOversized = false; // don't squish popups

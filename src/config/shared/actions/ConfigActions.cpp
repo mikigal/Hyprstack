@@ -1231,6 +1231,8 @@ ActionResult Actions::layoutMessage(const std::string& msg) {
 ActionResult Actions::moveCursor(const Vector2D& pos) {
     Pointer::pointerController()->warpTo(pos, true);
     g_pInputManager->simulateMouseMovement();
+    // Hyprstack: motion must be followed by a frame, clients (GTK) batch pointer events until one arrives
+    g_pSeatManager->sendPointerFrame();
     return {};
 }
 

@@ -1,4 +1,5 @@
 #include "WLSurface.hpp"
+#include "../../stack/decoration/DecorationPolicy.hpp"
 #include "LayerSurface.hpp"
 #include "window/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -182,6 +183,14 @@ bool CWLSurface::desktopComponent() const {
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() const {
     if (!desktopComponent())
         return {};
+
+    // Hyprstack: a stacking window's main surface reaches outside its frame (xdg window geometry)
+    if (const auto WINDOW = CWindow::fromView(m_view.lock()); WINDOW && WINDOW->wlSurface() && WINDOW->wlSurface()->resource() == resource()) {
+        if (const auto OVERFLOW = Stack::surfaceOverflow(WINDOW); OVERFLOW) {
+            const auto BOX = m_view->surfaceLogicalBox();
+            return BOX ? std::optional<CBox>{BOX->copy().addExtents(*OVERFLOW)} : std::nullopt;
+        }
+    }
 
     return m_view->surfaceLogicalBox();
 }

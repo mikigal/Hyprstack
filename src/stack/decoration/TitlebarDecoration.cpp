@@ -232,7 +232,24 @@ std::vector<eTitlebarButton> CTitlebarDecoration::buttons() const {
         }
     }
 
-    return parsed;
+    const auto W = m_window.lock();
+    if (!W)
+        return parsed;
+
+    // like KDE / Windows: dialogs only get a close button, fixed-size windows can't be maximized
+    const bool TRANSIENT = W->backend().parent() != nullptr;
+    const auto HINTS     = W->backend().geometryHints(Desktop::View::eBackendState::BACKEND_STATE_CURRENT);
+    const bool FIXED     = HINTS.minSize && HINTS.maxSize && HINTS.maxSize->x > 0 && *HINTS.minSize == *HINTS.maxSize;
+
+    if (!TRANSIENT && !FIXED)
+        return parsed;
+
+    std::vector<eTitlebarButton> filtered;
+    for (const auto B : parsed) {
+        if (B == TITLEBAR_BUTTON_CLOSE || (!TRANSIENT && B == TITLEBAR_BUTTON_MINIMIZE))
+            filtered.emplace_back(B);
+    }
+    return filtered;
 }
 
 CBox CTitlebarDecoration::buttonBoxGlobal(size_t index) const {

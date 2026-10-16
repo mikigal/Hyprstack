@@ -1,5 +1,6 @@
 #include "XDGDecoration.hpp"
 #include "XDGShell.hpp"
+#include "../stack/StackMode.hpp"
 #include <algorithm>
 
 CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel) : m_resource(resource_), m_toplevelResource(toplevel) {
@@ -42,6 +43,11 @@ zxdgToplevelDecorationV1Mode CXDGDecoration::xdgDefaultModeCSD() {
 }
 
 zxdgToplevelDecorationV1Mode CXDGDecoration::xdgModeOnRequestCSD(uint32_t modeRequestedByClient) {
+    // Hyprstack: in stacking mode an explicit client preference wins (like KWin)
+    if (Stack::stackingIsDefault() &&
+        (modeRequestedByClient == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE || modeRequestedByClient == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE))
+        return sc<zxdgToplevelDecorationV1Mode>(modeRequestedByClient);
+
     return xdgDefaultModeCSD();
 }
 
@@ -72,7 +78,7 @@ void CXDGDecorationProtocol::bindManager(wl_client* client, void* data, uint32_t
 bool CXDGDecorationProtocol::hasDecorationFor(SP<CWLSurfaceResource> surface) {
     return std::ranges::any_of(m_decorations, [&surface](const auto& e) {
         const auto TOPLEVEL = CXDGToplevelResource::fromResource(e.first);
-        return TOPLEVEL && TOPLEVEL->m_owner && TOPLEVEL->m_owner->m_surface == surface;
+        return TOPLEVEL && TOPLEVEL->m_owner && TOPLEVEL->m_owner->m_surface == surface && e.second->mostRecentlySent == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
     });
 }
 

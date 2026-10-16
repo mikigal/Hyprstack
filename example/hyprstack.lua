@@ -126,6 +126,12 @@ hl.config({
         -- the cursor stays where you put it
         no_warps = true,
     },
+
+    -- upstream Hyprland release notes / donation popups don't apply to this fork
+    ecosystem = {
+        no_update_news   = true,
+        no_donation_nag  = true,
+    },
 })
 
 -------------

@@ -28,6 +28,9 @@ PanelWindow {
                 id: button
                 required property var modelData
 
+                // dialogs belong to their parent's entry
+                visible: !modelData.parent
+
                 Layout.preferredWidth: 180
                 Layout.fillHeight: true
                 radius: 4

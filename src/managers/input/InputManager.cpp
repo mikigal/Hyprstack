@@ -383,7 +383,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         if (!pFoundWindow->backend().isX11())
             foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
         if (!foundSurface) {
-            surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+            surfacePos   = Stack::mainSurfaceOrigin(pFoundWindow);
             foundSurface = pFoundWindow->wlSurface()->resource();
         }
     }
@@ -536,7 +536,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->wlSurface()->resource();
-                    surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+                    surfacePos   = Stack::mainSurfaceOrigin(pFoundWindow);
                 }
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();

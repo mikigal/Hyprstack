@@ -1,4 +1,5 @@
 #include "ViewHitTester.hpp"
+#include "../../stack/decoration/DecorationPolicy.hpp"
 #include "FocusState.hpp"
 #include "ViewStateTracker.hpp"
 #include "../view/LayerSurface.hpp"
@@ -281,7 +282,10 @@ SP<CWLSurfaceResource> CViewHitTester::windowSurfaceAt(const Vector2D& pos, PHLW
         return PPOPUP->wlSurface()->resource();
     }
 
-    auto [surf, local] = window->wlSurface()->resource()->at(pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), true);
+    // Hyprstack: stacking windows draw their main surface offset by the xdg window geometry
+    const auto OVERFLOW = Stack::surfaceOverflow(window);
+    const auto ORIGIN   = window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) - (OVERFLOW ? OVERFLOW->topLeft : Vector2D{});
+    auto [surf, local]  = window->wlSurface()->resource()->at(pos - ORIGIN, true);
     if (surf) {
         surfaceLocal = local;
         return surf;

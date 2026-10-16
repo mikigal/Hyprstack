@@ -1,4 +1,5 @@
 #include "ServerDecorationKDE.hpp"
+#include "../stack/StackMode.hpp"
 #include "core/Compositor.hpp"
 
 CServerDecorationKDE::CServerDecorationKDE(SP<COrgKdeKwinServerDecoration> resource_, SP<CWLSurfaceResource> surf_) : m_surf(surf_), m_resource(resource_) {
@@ -33,6 +34,10 @@ uint32_t CServerDecorationKDE::kdeDefaultModeCSD() {
 }
 
 uint32_t CServerDecorationKDE::kdeModeOnRequestCSD(uint32_t modeRequestedByClient) {
+    // Hyprstack: in stacking mode an explicit client preference wins (like KWin)
+    if (Stack::stackingIsDefault() && (modeRequestedByClient == ORG_KDE_KWIN_SERVER_DECORATION_MODE_CLIENT || modeRequestedByClient == ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER))
+        return modeRequestedByClient;
+
     return kdeDefaultModeCSD();
 }
 

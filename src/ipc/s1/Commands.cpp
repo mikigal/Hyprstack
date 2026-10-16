@@ -1,5 +1,6 @@
 #include "Commands.hpp"
 #include "../../stack/WindowStack.hpp"
+#include "../../stack/decoration/TitlebarDecoration.hpp"
 #include "../../desktop/view/window/WindowFullscreenPolicy.hpp"
 #include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
@@ -439,7 +440,8 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
     "minimized": {},
     "maximized": {},
     "stackLayer": {},
-    "tiled": {}
+    "tiled": {},
+    "titlebar": {}
 }},)#",
             rc<uintptr_t>(w.get()), (w->mapped() ? "true" : "false"), (w->isHidden() ? "true" : "false"), (VISIBLE ? "true" : "false"), (w->acceptsInput() ? "true" : "false"),
             sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
@@ -454,7 +456,8 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->swallowing().swallowee().get()), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(METADATA.tag.value_or("")), escapeJSONStrings(METADATA.description.value_or("")),
             escapeJSONStrings(NContentType::toString(w->getContentType())), ((w->m_hints & Desktop::View::WINDOW_HINT_TEAR) ? "true" : "false"), w->metadata().stableID(),
-            (w->isMinimized() ? "true" : "false"), sc<int>(Stack::windowStack()->maximized(w)), sc<int>(Stack::windowStack()->layer(w)), sc<int>(Stack::windowStack()->tiled(w)));
+            (w->isMinimized() ? "true" : "false"), sc<int>(Stack::windowStack()->maximized(w)), sc<int>(Stack::windowStack()->layer(w)), sc<int>(Stack::windowStack()->tiled(w)),
+            sc<int>(Stack::wantsTitlebar(w)));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tvisible: {}\n\tacceptsInput: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: "
@@ -464,7 +467,7 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tfullscreenHandler: {}\n\tallowedOverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: "
             "{}\n\tinhibitingIdle: "
             "{}\n\txdgTag: "
-            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\ttearingHint: {}\n\tstableID: {:x}\n\tminimized: {}\n\tmaximized: {}\n\tstackLayer: {}\n\ttiled: {}\n\n",
+            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\ttearingHint: {}\n\tstableID: {:x}\n\tminimized: {}\n\tmaximized: {}\n\tstackLayer: {}\n\ttiled: {}\n\ttitlebar: {}\n\n",
             rc<uintptr_t>(w.get()), w->metadata().title(), sc<int>(w->mapped()), sc<int>(w->isHidden()), sc<int>(VISIBLE), sc<int>(w->acceptsInput()),
             sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
             sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), WORKSPACE_ADDRESS,
@@ -476,7 +479,7 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             getTagsData(w, format), rc<uintptr_t>(w->swallowing().swallowee().get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)),
             METADATA.tag.value_or(""), METADATA.description.value_or(""), NContentType::toString(w->getContentType()),
             sc<int>(sc<bool>(w->m_hints & Desktop::View::WINDOW_HINT_TEAR)), w->metadata().stableID(), sc<int>(w->isMinimized()), sc<int>(Stack::windowStack()->maximized(w)),
-            sc<int>(Stack::windowStack()->layer(w)), sc<int>(Stack::windowStack()->tiled(w)));
+            sc<int>(Stack::windowStack()->layer(w)), sc<int>(Stack::windowStack()->tiled(w)), sc<int>(Stack::wantsTitlebar(w)));
     }
 }
 

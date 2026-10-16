@@ -26,23 +26,29 @@ void StackTest::leaveStacking() {
     getFromSocket("/reload");
 }
 
-CUniquePointer<CProcess> StackTest::spawnFoot(const std::string& cls, int cols, int rows) {
+CUniquePointer<CProcess> StackTest::spawnFoot(const std::string& cls, int cols, int rows, const std::vector<std::string>& extraArgs) {
+    std::vector<std::string> args = {"--app-id", cls, "-W", std::format("{}x{}", cols, rows)};
+    args.insert(args.end(), extraArgs.begin(), extraArgs.end());
+    return spawnClient("foot", args, 5000);
+}
+
+CUniquePointer<CProcess> StackTest::spawnClient(const std::string& binary, const std::vector<std::string>& args, int timeoutMs) {
     const auto COUNT_BEFORE = Tests::windowCount();
 
-    auto       foot = makeUnique<CProcess>("foot", std::vector<std::string>{"--app-id", cls, "-W", std::format("{}x{}", cols, rows)});
-    foot->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
-    foot->runAsync();
+    auto       proc = makeUnique<CProcess>(binary, args);
+    proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
+    proc->runAsync();
 
-    for (int i = 0; i < 100 && Tests::processAlive(foot->pid()) && Tests::windowCount() == COUNT_BEFORE; ++i) {
+    for (int i = 0; i < timeoutMs / 50 && Tests::processAlive(proc->pid()) && Tests::windowCount() == COUNT_BEFORE; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    if (!Tests::processAlive(foot->pid()) || Tests::windowCount() == COUNT_BEFORE)
+    if (!Tests::processAlive(proc->pid()) || Tests::windowCount() == COUNT_BEFORE)
         return nullptr;
 
     // let the first configure / commit round settle
     Tests::sync();
-    return foot;
+    return proc;
 }
 
 static std::vector<std::string> clientBlocks() {
@@ -96,6 +102,7 @@ StackTest::SWindowInfo StackTest::window(const std::string& cls) {
         info.maximized    = parseInt(Tests::getAttribute(block, "maximized"));
         info.layer        = parseInt(Tests::getAttribute(block, "stackLayer"));
         info.tiled        = parseInt(Tests::getAttribute(block, "tiled"));
+        info.titlebar     = Tests::getAttribute(block, "titlebar") == "1";
         return info;
     }
 
