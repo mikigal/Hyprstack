@@ -866,8 +866,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
             const CBox real = Stack::resizeFrame(w, w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT));
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
-            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || Stack::inResizeCorner(w, mouseCoords))) &&
-                !w->hasPopupAt(mouseCoords)) {
+            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || Stack::inResizeCorner(w, mouseCoords))) && !w->hasPopupAt(mouseCoords)) {
                 if (!g_layoutManager->dragController()->target())
                     g_layoutManager->beginDragTarget(w->layoutTarget(), MBIND_RESIZE);
                 return;
