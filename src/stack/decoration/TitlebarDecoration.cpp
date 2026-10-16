@@ -140,7 +140,11 @@ void CTitlebarDecoration::syncVisibility() {
     if (m_lastVisible == VISIBLE)
         return;
 
-    m_lastVisible = VISIBLE;
+    // a titlebar that never showed up has nothing to reposition (keeps non-stacking windows untouched)
+    const bool FIRST_SYNC = !m_lastVisible.has_value();
+    m_lastVisible         = VISIBLE;
+    if (FIRST_SYNC && !VISIBLE)
+        return;
     g_pDecorationPositioner->repositionDeco(this);
 
     if (const auto W = m_window.lock(); W && W->layoutTarget())

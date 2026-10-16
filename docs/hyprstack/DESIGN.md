@@ -63,6 +63,13 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 4. Integracja z shellem (foreign-toplevel, IPC, MRU, miniatury) + roboczy shell w Quickshellu do testów.
 5. Domyślny config w stylu Windows, ukrycie tilingu.
 
+## Regresje względem upstreamu
+
+Porównanie (2026-10-16, chunked, te same warunki, `~/private/compare-suites.sh` na VM): 280 testów upstreamu.
+Testy padające tylko na forku powtórzone 2× na obu binarkach — wszystkie flaky także na upstreamie
+(timing kitty/llvmpipe na VM), poza `dwindleFloatClamp` (tiling; fork 1/6, upstream 4/5 przejść,
+niewyjaśnione, ręczne odtworzenie daje identyczny wynik na obu binarkach). Tiling nie jest celem forka.
+
 ## Testy E2E
 
 - `hyprtester/` (upstream): headless kompozytor + plugin testowy (symulacja kliknięć, klawiatury,
