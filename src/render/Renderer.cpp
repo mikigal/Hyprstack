@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "../stack/decoration/DecorationPolicy.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
@@ -609,6 +610,13 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     renderdata.pos.y = textureBox.y;
     renderdata.w     = textureBox.w;
     renderdata.h     = textureBox.h;
+
+    // Hyprstack: honor xdg window geometry, the surface may reach outside the frame (CSD shadows)
+    if (const auto OVERFLOW = Stack::surfaceOverflow(pWindow); OVERFLOW) {
+        renderdata.pos -= OVERFLOW->topLeft;
+        renderdata.w += OVERFLOW->topLeft.x + OVERFLOW->bottomRight.x;
+        renderdata.h += OVERFLOW->topLeft.y + OVERFLOW->bottomRight.y;
+    }
 
     if (ignorePosition) {
         renderdata.pos.x = pMonitor->m_position.x;

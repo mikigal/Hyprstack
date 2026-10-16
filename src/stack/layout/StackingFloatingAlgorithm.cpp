@@ -11,6 +11,11 @@
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../output/Monitor.hpp"
+#include "../../workspace/HLWorkspace.hpp"
+#include "../decoration/DecorationPolicy.hpp"
+#include "../decoration/TitlebarDecoration.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -23,20 +28,48 @@ static SBoxExtents extentsFor(SP<ITarget> t) {
     return t->window() ? t->window()->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS) : SBoxExtents{};
 }
 
+// Decorations of a window that is being mapped haven't been positioned yet (the positioner skips
+// unmapped windows), so predict what border and titlebar will take.
+static SBoxExtents predictedExtents(PHLWINDOW w) {
+    static auto PTITLEBARHEIGHT = CConfigValue<Config::INTEGER>("stacking:titlebar:height");
+
+    auto        extents = w->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS);
+
+    const bool  BORDER = w->m_ruleApplicator->decorate().valueOrDefault() && !w->backend().traits().suggestsNoBorder;
+    const auto  B      = BORDER ? sc<double>(w->presentation().borderSize()) : 0.0;
+    const auto  T      = Stack::wantsTitlebar(w) ? sc<double>(*PTITLEBARHEIGHT) : 0.0;
+
+    extents.topLeft     = Vector2D{std::max(extents.topLeft.x, B), std::max(extents.topLeft.y, B + T)};
+    extents.bottomRight = Vector2D{std::max(extents.bottomRight.x, B), std::max(extents.bottomRight.y, B)};
+    return extents;
+}
+
 void CStackingFloatingAlgorithm::newTarget(SP<ITarget> target) {
     const bool FIRST_MAP = target->window() && (target->window()->m_state & Desktop::View::WINDOW_STATE_FIRST_MAP);
 
     CDefaultFloatingAlgorithm::newTarget(target);
 
-    if (!FIRST_MAP || !shouldPlace(target))
+    if (!FIRST_MAP || !target->window() || target->window()->isHidden() || target->window()->backend().traits().overrideRedirect)
         return;
+
+    Stack::applyDecorationPolicy(target->window());
+
+    if (!shouldPlace(target)) {
+        // the window positioned itself (rule / X11): just make sure its decorations stay reachable
+        const auto WORK_AREA = m_parent->space()->workArea(true);
+        const auto EXTENTS   = predictedExtents(target->window());
+        auto       box       = clampIntoWorkArea(target->position().copy().addExtents(EXTENTS), WORK_AREA);
+        target->setPositionGlobal(box.addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight}));
+        updateTarget(target);
+        return;
+    }
 
     static auto PPLACEMENT  = CConfigValue<Config::STRING>("stacking:placement");
     static auto PTRANSIENTS = CConfigValue<Config::INTEGER>("stacking:center_transients");
     static auto PCLAMP      = CConfigValue<Config::INTEGER>("stacking:clamp_new_to_workarea");
 
     const auto  WORK_AREA = m_parent->space()->workArea(true);
-    const auto  EXTENTS   = extentsFor(target);
+    const auto  EXTENTS   = predictedExtents(target->window());
 
     CBox        box = target->position().copy().addExtents(EXTENTS);
 
@@ -111,10 +144,13 @@ bool CStackingFloatingAlgorithm::shouldPlace(SP<ITarget> target) {
     if (WINDOW->m_ruleApplicator->static_.position || WINDOW->m_ruleApplicator->static_.center.value_or(false))
         return false;
 
-    // X11 clients may position themselves
+    // X11 clients may position themselves. Many request the monitor's origin when they don't
+    // care, treat that as "no preference".
     const auto DESIRED = target->desiredGeometry();
-    if (DESIRED && DESIRED->pos && WINDOW->backend().isX11())
-        return false;
+    if (DESIRED && DESIRED->pos && WINDOW->backend().isX11()) {
+        const auto MONITOR = m_parent->space()->workspace()->m_monitor.lock();
+        return MONITOR && *DESIRED->pos == MONITOR->m_position;
+    }
 
     return true;
 }

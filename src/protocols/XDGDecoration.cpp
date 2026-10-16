@@ -1,4 +1,5 @@
 #include "XDGDecoration.hpp"
+#include "XDGShell.hpp"
 #include <algorithm>
 
 CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel) : m_resource(resource_), m_toplevelResource(toplevel) {
@@ -66,6 +67,13 @@ void CXDGDecorationProtocol::bindManager(wl_client* client, void* data, uint32_t
 
     RESOURCE->setDestroy([this](CZxdgDecorationManagerV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setGetToplevelDecoration([this](CZxdgDecorationManagerV1* pMgr, uint32_t id, wl_resource* xdgToplevel) { this->onGetDecoration(pMgr, id, xdgToplevel); });
+}
+
+bool CXDGDecorationProtocol::hasDecorationFor(SP<CWLSurfaceResource> surface) {
+    return std::ranges::any_of(m_decorations, [&surface](const auto& e) {
+        const auto TOPLEVEL = CXDGToplevelResource::fromResource(e.first);
+        return TOPLEVEL && TOPLEVEL->m_owner && TOPLEVEL->m_owner->m_surface == surface;
+    });
 }
 
 void CXDGDecorationProtocol::onManagerResourceDestroy(wl_resource* res) {

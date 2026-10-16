@@ -8,8 +8,10 @@
 
 using namespace StackTest;
 
-// border_size is 1 in enterStacking(): window boxes are inset by it from the work area
-static constexpr int BORDER = 1;
+// border_size is 1 in enterStacking(): window boxes are inset by it from the work area.
+// foot negotiates server-side decorations, so it also gets a titlebar.
+static constexpr int BORDER   = 1;
+static constexpr int TITLEBAR = 32;
 
 TEST_CASE(stackWindowsAlwaysFloat) {
     enterStacking();
@@ -36,8 +38,9 @@ TEST_CASE(stackPlacementFirstCentered) {
     const auto WIN  = window("stack-a");
     const auto AREA = workAreaOf("stack-a");
 
+    // the whole frame (titlebar included) is centered
     EXPECT_MAX_DELTA(WIN.box.x + WIN.box.w / 2, AREA.x + AREA.w / 2, 2);
-    EXPECT_MAX_DELTA(WIN.box.y + WIN.box.h / 2, AREA.y + AREA.h / 2, 2);
+    EXPECT_MAX_DELTA(WIN.box.y - TITLEBAR + (WIN.box.h + TITLEBAR) / 2, AREA.y + AREA.h / 2, 2);
 
     leaveStacking();
 }
@@ -93,9 +96,9 @@ TEST_CASE(stackMaximizeToggle) {
         const auto WIN = window("stack-a");
         EXPECT(WIN.maximized, 3);
         EXPECT(WIN.box.x, AREA.x + BORDER);
-        EXPECT(WIN.box.y, AREA.y + BORDER);
+        EXPECT(WIN.box.y, AREA.y + BORDER + TITLEBAR);
         EXPECT(WIN.box.w, AREA.w - 2 * BORDER);
-        EXPECT(WIN.box.h, AREA.h - 2 * BORDER);
+        EXPECT(WIN.box.h, AREA.h - 2 * BORDER - TITLEBAR);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.maximize({ window = 'class:stack-a' })"));
@@ -128,8 +131,8 @@ TEST_CASE(stackMaximizePartial) {
     EXPECT(WIN.maximized, 2);
     EXPECT(WIN.box.x, BEFORE.x);
     EXPECT(WIN.box.w, BEFORE.w);
-    EXPECT(WIN.box.y, AREA.y + BORDER);
-    EXPECT(WIN.box.h, AREA.h - 2 * BORDER);
+    EXPECT(WIN.box.y, AREA.y + BORDER + TITLEBAR);
+    EXPECT(WIN.box.h, AREA.h - 2 * BORDER - TITLEBAR);
 
     leaveStacking();
 }

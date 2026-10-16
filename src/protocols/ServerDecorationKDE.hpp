@@ -30,6 +30,9 @@ class CServerDecorationKDE {
 
 class CServerDecorationKDEProtocol : public IWaylandProtocol {
   public:
+    // Hyprstack: whether this surface uses the KDE server decoration protocol in server mode
+    bool hasServerDecorationFor(SP<CWLSurfaceResource> surface);
+
     CServerDecorationKDEProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);

@@ -5,6 +5,7 @@
 #   hs-session stop
 #   hs-session ctl ARGS...        run hyprctl against the session
 #   hs-session spawn CMD...       run a client inside the session (detached)
+#   hs-session exec CMD           run a command through the compositor (gets DISPLAY for X11 apps)
 #   hs-session shot [FILE]        screenshot all outputs (grim), prints the path
 #   hs-session env                print exports to use the session from a shell
 #   hs-session log                tail the compositor log
@@ -141,8 +142,9 @@ case "${1:-}" in
     stop) cmd_stop ;;
     ctl) shift; load_env; hctl "$@" ;;
     spawn) shift; load_env; setsid "$@" > "$STATE_DIR/client-$(basename "$1").log" 2>&1 < /dev/null & echo "pid=$!" ;;
+    exec) shift; load_env; hctl dispatch "hl.dsp.exec_cmd('$*')" ;;
     shot) shift; cmd_shot "$@" ;;
     env) load_env; cat "$STATE_DIR/env" ;;
     log) load_env; tail -n "${2:-50}" "$STATE_DIR/compositor.log" ;;
-    *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+    *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

@@ -18,6 +18,7 @@
 #include "Window.hpp"
 #include "../../../stack/StackMode.hpp"
 #include "../../../stack/WindowStack.hpp"
+#include "../../../stack/decoration/DecorationPolicy.hpp"
 #include "WindowEffectsController.hpp"
 #include "WindowFullscreenPolicy.hpp"
 #include "WindowGroupMembership.hpp"
@@ -268,6 +269,12 @@ SBoxExtents CWindow::getFullWindowExtents() const {
     maxExtents.bottomRight.x = std::max(EXTENTS.bottomRight.x, maxExtents.bottomRight.x);
 
     maxExtents.bottomRight.y = std::max(EXTENTS.bottomRight.y, maxExtents.bottomRight.y);
+
+    // Hyprstack: client-side shadows outside the xdg window geometry
+    if (const auto OVERFLOW = Stack::surfaceOverflow(m_self.lock()); OVERFLOW) {
+        maxExtents.topLeft     = Vector2D{std::max(maxExtents.topLeft.x, OVERFLOW->topLeft.x), std::max(maxExtents.topLeft.y, OVERFLOW->topLeft.y)};
+        maxExtents.bottomRight = Vector2D{std::max(maxExtents.bottomRight.x, OVERFLOW->bottomRight.x), std::max(maxExtents.bottomRight.y, OVERFLOW->bottomRight.y)};
+    }
 
     if (m_wlSurface->exists() && !m_backend->isX11() && popupHead()) {
         const auto& surfaceExtents = popupHead()->popupTreeExtents();

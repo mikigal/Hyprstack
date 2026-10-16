@@ -44,6 +44,10 @@ CServerDecorationKDEProtocol::CServerDecorationKDEProtocol(const wl_interface* i
     ;
 }
 
+bool CServerDecorationKDEProtocol::hasServerDecorationFor(SP<CWLSurfaceResource> surface) {
+    return std::ranges::any_of(m_decos, [&surface](const auto& d) { return d->m_surf == surface && d->m_mostRecentlySent == ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER; });
+}
+
 void CServerDecorationKDEProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_managers.emplace_back(makeUnique<COrgKdeKwinServerDecorationManager>(client, ver, id)).get();
     RESOURCE->setOnDestroy([this](COrgKdeKwinServerDecorationManager* p) { this->onManagerResourceDestroy(p->resource()); });

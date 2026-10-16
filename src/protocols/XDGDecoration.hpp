@@ -5,6 +5,8 @@
 #include "WaylandProtocol.hpp"
 #include "xdg-decoration-unstable-v1.hpp"
 
+class CWLSurfaceResource;
+
 class CXDGDecoration {
   public:
     CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel);
@@ -29,6 +31,9 @@ class CXDGDecorationProtocol : public IWaylandProtocol {
     CXDGDecorationProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+    // Hyprstack: whether the toplevel of this surface negotiates decorations (we always answer server-side)
+    bool hasDecorationFor(SP<CWLSurfaceResource> surface);
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

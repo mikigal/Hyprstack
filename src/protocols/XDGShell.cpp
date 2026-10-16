@@ -170,11 +170,17 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN;
         p      = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE;
+        // Hyprstack: windows can be minimized in stacking mode
+        if (Stack::stackingIsDefault()) {
+            p  = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
+            *p = XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE;
+        }
         m_resource->sendWmCapabilities(&arr);
         wl_array_release(&arr);
     }
 
-    if (m_resource->version() >= 2) {
+    // Hyprstack: stacking windows are not tiled (until quick-tiled)
+    if (m_resource->version() >= 2 && !Stack::stackingIsDefault()) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_LEFT);
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_RIGHT);
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_TILED_TOP);

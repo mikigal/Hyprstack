@@ -94,6 +94,22 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
   eventy socket2 `maximized>>ADDR,MODE`, `minimized>>ADDR,0|1`, `stacklayer>>ADDR,LAYER`.
 - Testy: `hyprtester/src/tests/stack/` (grupa `stack`), uruchamianie: `STACK_ONLY=1 scripts/e2e/run-hyprtester`.
 
+### Faza 2 — belki tytułowe i okna CSD (w toku)
+
+- `Stack::CTitlebarDecoration` (`src/stack/decoration/`): doczepiana do każdego okna, widoczna tylko
+  dla okien na workspace stacking, które wynegocjowały SSD (xdg-decoration / KDE) albo są X11 bez
+  motif "no decorations". Tytuł, przyciski (`stacking:titlebar:buttons`, akcja przy puszczeniu jak
+  w Windows), dwuklik = maximize, przeciąganie = move, środkowy = lower, prawy = event IPC
+  `titlebarmenu>>ADDR,X,Y` (menu okna zrobi shell). Ramka obejmuje belkę i okno.
+- Okna CSD (GTK, Chromium…): brak ramki/cienia/zaokrągleń kompozytora (priorytet `PRIORITY_LAYOUT`,
+  reguły okien wygrywają; `stacking:decorate_csd` przywraca), prawdziwy stan maximized, brak
+  wymuszonych stanów `tiled`, capability `MINIMIZE`.
+- Upstream nie obsługiwał `xdg_surface.set_window_geometry` dla głównej powierzchni (komentarz
+  "FIXME ... We always set MAXIMIZED anyways"). Dla okien stacking renderer rysuje całą powierzchnię
+  z offsetem geometrii (cienie CSD poza ramką), extents okna obejmują ten nadmiar (damage).
+- Rozmieszczanie przewiduje wymiary ramki i belki przed zmapowaniem (positioner pomija niezmapowane
+  okna); pozycje X11 równe narożnikowi monitora traktowane jako "brak preferencji".
+
 ### Haki w plikach upstreamu (sprawdzać przy merge'ach)
 
 | Plik | Hak |
@@ -112,3 +128,8 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 | `protocols/ForeignToplevelWlr.cpp` | minimize przez `Stack`, stany MAXIMIZED/MINIMIZED |
 | `ipc/s1/Commands.cpp` | pola stack w `clients` |
 | `hyprtester/src/main.cpp` | grupa testów `stack` |
+| `desktop/view/window/WindowPresentation.cpp` | doczepienie `CTitlebarDecoration` |
+| `desktop/view/window/Window.cpp` (`getFullWindowExtents`) | nadmiar powierzchni CSD w extents |
+| `render/Renderer.cpp` (`renderWindow`) | offset geometrii xdg dla okien stacking |
+| `protocols/XDGDecoration.*`, `protocols/ServerDecorationKDE.*` | zapytanie "czy okno ma SSD" |
+| `protocols/XDGShell.cpp` | bez stanów `tiled` i z capability `MINIMIZE` w trybie stacking |

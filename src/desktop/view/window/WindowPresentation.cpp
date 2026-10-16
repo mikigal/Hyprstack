@@ -1,4 +1,5 @@
 #include "WindowPresentation.hpp"
+#include "../../../stack/decoration/TitlebarDecoration.hpp"
 
 #include "Window.hpp"
 #include "../../../animation/AnimationManager.hpp"
@@ -67,6 +68,7 @@ void CWindowPresentation::initialize() {
     addDecorationInternal(m_shadowDecoration);
     addDecorationInternal(m_borderDecoration);
     addDecorationInternal(m_glowDecoration);
+    addDecorationInternal(makeShared<Stack::CTitlebarDecoration>(WINDOW)); // Hyprstack: hides itself when not applicable
 
     m_borderDecoration->initializeAnimations();
     Animation::mgr()->createAnimation(1.F, alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), WINDOW, AVARDAMAGE_ENTIRE);
