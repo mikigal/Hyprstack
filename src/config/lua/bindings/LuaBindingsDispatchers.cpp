@@ -1384,6 +1384,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setDispatcherFn(L, "release_input_capture", hlReleaseInputCapture, 0);
         Internal::setDispatcherFn(L, "focus", hlFocus, 1);
         Internal::setDispatcherFn(L, "no_op", hlNoop, 0);
+        Stack::Lua::registerDispatchers(L); // Hyprstack
     }
 
     lua_setfield(L, -2, "dsp");

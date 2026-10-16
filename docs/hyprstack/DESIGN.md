@@ -123,6 +123,21 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
   (←/→ połowa, ponownie → kolejny monitor, przeciwny kierunek przywraca; ↑ ćwiartka/maximize;
   ↓ ćwiartka/przywrócenie/minimize). IPC: pole `tiled`, event `tiled>>ADDR,EDGES`.
 
+### Faza 4 — integracja z shellem (zrobione, poza oknem menu)
+
+- Aktywacja zminimalizowanego okna z dowolnego źródła (foreign-toplevel `activate`, xdg-activation,
+  `hl.dsp.focus`) przywraca je (hak w `CFocusState::fullWindowFocus`).
+- `hl.dsp.show_desktop()` — jak Win+D: minimalizuje widoczne okna, ponownie przywraca (z kolejnością
+  i fokusem); przywrócenie/otwarcie okna kończy tryb. Event `showdesktop>>0|1`.
+- Dla shella (Quickshell): `ToplevelManager` (wlr-foreign-toplevel: minimize/maximize/activate/close,
+  stany MINIMIZED/MAXIMIZED), `Hyprland.toplevels[].lastIpcObject.focusHistoryID` = kolejność MRU,
+  `ScreencopyView` na miniatury (działa też dla zminimalizowanych — ostatnia klatka),
+  `GlobalShortcut` do Alt+Tab, eventy `maximized`, `tiled`, `minimized`, `titlebarmenu`.
+- Roboczy shell do testów: `scripts/e2e/dev-shell/` (taskbar + Alt+Tab z miniaturami),
+  `hs-session start --shell --plugin`. Znany problem roboczego shella: pierwsze Alt+Tab po starcie
+  czasem gubi puszczenie Alt (fokus klawiatury layer-surface).
+- TODO: menu okna (prawy klik na belce / `xdg_toplevel.show_window_menu`) — po stronie shella.
+
 ### Haki w plikach upstreamu (sprawdzać przy merge'ach)
 
 | Plik | Hak |
@@ -149,3 +164,4 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 | `desktop/view/window/WaylandBackend.*` | `setTiledEdges()` |
 | `layout/supplementary/DragController.cpp` | drag-restore maximized/tiled, podgląd quick-tile |
 | `managers/input/InputManager.cpp` | ramka resize-on-border obejmuje belkę |
+| `desktop/state/FocusState.cpp` | fokus zminimalizowanego okna je przywraca |

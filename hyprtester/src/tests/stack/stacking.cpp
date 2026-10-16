@@ -274,3 +274,52 @@ TEST_CASE(stackKeepAboveAndBelow) {
 
     leaveStacking();
 }
+
+TEST_CASE(stackFocusRestoresMinimized) {
+    enterStacking();
+
+    SPAWN_FOOT(a, "stack-a");
+    SPAWN_FOOT(b, "stack-b");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.minimize({ window = 'class:stack-b' })"));
+    Tests::sync();
+    ASSERT(window("stack-b").minimized, true);
+
+    // a taskbar / switcher activating the window brings it back
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:stack-b' })"));
+    Tests::sync();
+    EXPECT(window("stack-b").minimized, false);
+    EXPECT(activeClass(), "stack-b");
+
+    leaveStacking();
+}
+
+TEST_CASE(stackShowDesktop) {
+    enterStacking();
+
+    SPAWN_FOOT(a, "stack-a");
+    SPAWN_FOOT(b, "stack-b");
+
+    OK(getFromSocket("/dispatch hl.dsp.show_desktop()"));
+    Tests::sync();
+    EXPECT(window("stack-a").minimized, true);
+    EXPECT(window("stack-b").minimized, true);
+
+    // toggling again restores everything, stacking order and focus included
+    OK(getFromSocket("/dispatch hl.dsp.show_desktop()"));
+    Tests::sync();
+    EXPECT(window("stack-a").minimized, false);
+    EXPECT(window("stack-b").minimized, false);
+    EXPECT(isAbove("stack-b", "stack-a"), true);
+    EXPECT(activeClass(), "stack-b");
+
+    // restoring a single window ends the mode: the next toggle hides again instead of restoring
+    OK(getFromSocket("/dispatch hl.dsp.show_desktop()"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:stack-a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.show_desktop()"));
+    Tests::sync();
+    EXPECT(window("stack-a").minimized, true);
+    EXPECT(window("stack-b").minimized, true);
+
+    leaveStacking();
+}

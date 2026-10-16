@@ -33,6 +33,8 @@ UP<CWindowStack>& Stack::windowStack() {
 }
 
 CWindowStack::CWindowStack() {
+    m_listeners.windowOpen = Event::bus()->m_events.window.open.listen([this](PHLWINDOW) { endShowDesktop(); });
+
     m_listeners.windowDestroy = Event::bus()->m_events.window.destroy.listen([this](PHLWINDOWREF) { purgeExpired(); });
 
     m_listeners.windowActive = Event::bus()->m_events.window.active.listen([](PHLWINDOW w, Desktop::eFocusReason reason) {
@@ -313,6 +315,7 @@ void CWindowStack::setMinimized(PHLWINDOW w, bool minimize) {
         if (WAS_FOCUSED)
             focusNextAfter(w);
     } else {
+        endShowDesktop();
         Desktop::windowState()->raise(w);
         Desktop::focusState()->fullWindowFocus(w, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
     }
@@ -343,6 +346,53 @@ void CWindowStack::focusNextAfter(PHLWINDOW w) {
         Desktop::focusState()->fullWindowFocus(fallback, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
     else
         Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
+}
+
+bool CWindowStack::showingDesktop() const {
+    return m_showingDesktop;
+}
+
+void CWindowStack::endShowDesktop() {
+    if (!m_showingDesktop || m_changingShowDesktop)
+        return;
+
+    m_showingDesktop = false;
+    m_hiddenByShowDesktop.clear();
+    IPC::Socket2::sock()->postEvent({.event = "showdesktop", .data = "0"});
+}
+
+void CWindowStack::toggleShowDesktop() {
+    m_changingShowDesktop = true;
+
+    if (!m_showingDesktop) {
+        m_hiddenByShowDesktop.clear();
+
+        for (const auto& w : Desktop::windowState()->windows()) {
+            if (!w->mapped() || w->isHidden() || !windowIsStacking(w) || !w->m_workspace || !w->m_workspace->visible() || w->backend().traits().overrideRedirect)
+                continue;
+
+            m_hiddenByShowDesktop.emplace_back(w);
+        }
+
+        for (const auto& ref : m_hiddenByShowDesktop) {
+            if (const auto W = ref.lock(); W)
+                setMinimized(W, true);
+        }
+
+        m_showingDesktop = true;
+    } else {
+        // restore bottom to top so the stacking order survives, the topmost ends up focused
+        for (const auto& ref : m_hiddenByShowDesktop) {
+            if (const auto W = ref.lock(); W && W->isMinimized())
+                setMinimized(W, false);
+        }
+
+        m_hiddenByShowDesktop.clear();
+        m_showingDesktop = false;
+    }
+
+    m_changingShowDesktop = false;
+    IPC::Socket2::sock()->postEvent({.event = "showdesktop", .data = m_showingDesktop ? "1" : "0"});
 }
 
 void CWindowStack::requestMinimize(PHLWINDOW w, bool minimize) {

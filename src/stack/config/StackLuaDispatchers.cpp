@@ -143,3 +143,17 @@ void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "tile", hlWindowTile, 1);
     Internal::setDispatcherFn(L, "snap", hlWindowSnap, 1);
 }
+
+static int dsp_showDesktop(lua_State* L) {
+    return Internal::checkResult(L, Stack::Actions::showDesktop());
+}
+
+// hl.dsp.show_desktop(): toggle
+static int hlShowDesktop(lua_State* L) {
+    lua_pushcclosure(L, dsp_showDesktop, 0);
+    return 1;
+}
+
+void Stack::Lua::registerDispatchers(lua_State* L) {
+    Internal::setDispatcherFn(L, "show_desktop", hlShowDesktop, 0);
+}

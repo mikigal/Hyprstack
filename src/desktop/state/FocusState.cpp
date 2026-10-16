@@ -1,4 +1,5 @@
 #include "FocusState.hpp"
+#include "../../stack/WindowStack.hpp"
 #include "../view/window/WindowFullscreenPolicy.hpp"
 #include "../view/window/WindowGroupMembership.hpp"
 #include "../view/window/Window.hpp"
@@ -73,6 +74,12 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
 }
 
 void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
+    // Hyprstack: explicitly focusing a minimized window (taskbar, switcher, activation) restores it
+    if (pWindow && pWindow->isMinimized() && reason != FOCUS_REASON_FFM) {
+        Stack::windowStack()->setMinimized(pWindow, false); // focuses it
+        return;
+    }
+
     if (pWindow) {
         if (!pWindow->m_workspace)
             return;

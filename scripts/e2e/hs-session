@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hs-session: drive a headless Hyprstack instance for manual / scripted E2E testing.
 #
-#   hs-session start [--bin PATH] [--config FILE] [--res WxH] [--outputs N] [--vnc PORT]
+#   hs-session start [--bin PATH] [--config FILE] [--res WxH] [--outputs N] [--vnc PORT] [--shell] [--plugin]
 #   hs-session stop
 #   hs-session ctl ARGS...        run hyprctl against the session
 #   hs-session spawn CMD...       run a client inside the session (detached)
@@ -35,7 +35,7 @@ hctl() {
 }
 
 cmd_start() {
-    local bin="$REPO_ROOT/build/Hyprland" config="" res="1280x720" outputs=1 vnc=""
+    local bin="$REPO_ROOT/build/Hyprland" config="" res="1280x720" outputs=1 vnc="" shell=0 plugin=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --bin) bin="$2"; shift 2 ;;
@@ -43,6 +43,8 @@ cmd_start() {
             --res) res="$2"; shift 2 ;;
             --outputs) outputs="$2"; shift 2 ;;
             --vnc) vnc="$2"; shift 2 ;;
+            --shell) shell=1; shift ;;
+            --plugin) plugin=1; shift ;;
             *) die "unknown option $1" ;;
         esac
     done
@@ -114,6 +116,18 @@ EOF
     if [[ -n "$vnc" ]]; then
         WAYLAND_DISPLAY="$wl" setsid wayvnc 127.0.0.1 "$vnc" > "$STATE_DIR/wayvnc.log" 2>&1 < /dev/null &
         echo "export HS_VNC_PID=\"$!\"" >> "$STATE_DIR/env"
+    fi
+
+    # hyprtester's plugin: simulated clicks / keys (hl.plugin.test.click, .keybind, ...)
+    if [[ "$plugin" == "1" ]]; then
+        hctl plugin load "$REPO_ROOT/hyprtester/plugin/hyprtestplugin.so" >/dev/null
+    fi
+
+    # development shell (taskbar + Alt+Tab switcher)
+    if [[ "$shell" == "1" ]]; then
+        hctl eval "hl.bind('ALT + Tab', hl.dsp.global('hyprstack:alttab'))" >/dev/null
+        hctl eval "hl.bind('ALT + SHIFT + Tab', hl.dsp.global('hyprstack:alttabback'))" >/dev/null
+        WAYLAND_DISPLAY="$wl" setsid quickshell -p "$REPO_ROOT/scripts/e2e/dev-shell" > "$STATE_DIR/client-quickshell.log" 2>&1 < /dev/null &
     fi
 
     echo "started pid=$pid sig=$sig wayland=$wl${vnc:+ vnc=127.0.0.1:$vnc}"

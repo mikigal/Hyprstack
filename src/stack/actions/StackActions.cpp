@@ -89,3 +89,8 @@ ActionResult Stack::Actions::snap(Math::eDirection dir, std::optional<PHLWINDOW>
     quickTile()->snap(WINDOW, dir);
     return {};
 }
+
+ActionResult Stack::Actions::showDesktop() {
+    windowStack()->toggleShowDesktop();
+    return {};
+}

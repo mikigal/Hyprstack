@@ -88,6 +88,11 @@ namespace Stack {
         // forwards the request to IPC/event listeners, as upstream Hyprland does.
         void requestMinimize(PHLWINDOW w, bool minimized);
 
+        // "show desktop": minimize every visible window; toggling again restores them.
+        // Restoring or opening any window ends the mode (like on Windows).
+        void toggleShowDesktop();
+        bool showingDesktop() const;
+
         // layers
         void        setLayer(PHLWINDOW w, eStackLayer layer);
         eStackLayer layer(PHLWINDOW w) const;
@@ -110,9 +115,15 @@ namespace Stack {
 
         std::map<PHLWINDOWREF, SWindowStackData> m_data;
 
+        bool                                     m_showingDesktop      = false;
+        bool                                     m_changingShowDesktop = false;
+        std::vector<PHLWINDOWREF>                m_hiddenByShowDesktop;
+        void                                     endShowDesktop();
+
         struct {
             CHyprSignalListener windowDestroy;
             CHyprSignalListener windowActive;
+            CHyprSignalListener windowOpen;
         } m_listeners;
     };
 
