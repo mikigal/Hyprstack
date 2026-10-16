@@ -57,6 +57,20 @@ Tiling nadal istnieje (`general.layout = "dwindle"` itd.), ale nie jest rozwijan
 - socket2: `minimized>>ADDR,0|1`, `maximized>>ADDR,MODE`, `tiled>>ADDR,EDGES`, `stacklayer>>ADDR,LAYER`,
   `showdesktop>>0|1`, `titlebarmenu>>ADDR,X,Y` (prawy klik na belce → menu okna rysuje shell).
 
+## Uruchomienie na prawdziwym ekranie (VM / sprzęt)
+
+1. Build i instalacja do `/usr/local` (przed paczkowym Hyprlandem w `PATH`):
+   `cmake --build build && sudo cmake --install build` — po każdej zmianie kodu.
+2. Config: `~/.config/hypr/hyprland.lua` (np. kopia `example/hyprstack.lua`). **Build Debug czyta
+   `hyprlandd.lua`** (z "d") — najprościej `ln -s hyprland.lua ~/.config/hypr/hyprlandd.lua`.
+3. Start z tty: `start-hyprland --path /usr/local/bin/Hyprland`.
+
+Na VM jest to ustawione na stałe: autologin na tty1 (`/etc/systemd/system/getty@tty1.service.d/autologin.conf`)
+i start kompozytora z `~/.bash_profile`, roboczy shell startuje z configu (`hl.on("hyprland.start", ...)`).
+Restart sesji: `hyprctl dispatch 'hl.dsp.exit()'` (autologin uruchomi ją ponownie). Uwaga: sesja na
+ekranie VM trzyma kartę DRM, więc testy headless (`run-hyprtester`, `hs-session`) wymagają jej zatrzymania
+(`sudo systemctl stop getty@tty1`, potem `sudo systemctl start getty@tty1`).
+
 ## Rozwój
 
 - Build: `cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DTESTS=true -S . -B build && cmake --build build`
