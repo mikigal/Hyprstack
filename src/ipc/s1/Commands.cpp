@@ -454,8 +454,7 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->swallowing().swallowee().get()), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(METADATA.tag.value_or("")), escapeJSONStrings(METADATA.description.value_or("")),
             escapeJSONStrings(NContentType::toString(w->getContentType())), ((w->m_hints & Desktop::View::WINDOW_HINT_TEAR) ? "true" : "false"), w->metadata().stableID(),
-            (w->isMinimized() ? "true" : "false"), sc<int>(Stack::windowStack()->maximized(w)), sc<int>(Stack::windowStack()->layer(w)),
-            sc<int>(Stack::windowStack()->tiled(w)));
+            (w->isMinimized() ? "true" : "false"), sc<int>(Stack::windowStack()->maximized(w)), sc<int>(Stack::windowStack()->layer(w)), sc<int>(Stack::windowStack()->tiled(w)));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tvisible: {}\n\tacceptsInput: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: "
