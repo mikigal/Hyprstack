@@ -57,3 +57,7 @@ meta/hl.meta.lua
 
 hyprtester/pointer-scroll.txt
 /keyboard-modifiers.txt
+
+# hyprtester runtime artifacts
+hyprtester/*.txt
+!hyprtester/pointer-scroll.txt
