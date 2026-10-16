@@ -54,6 +54,10 @@ cmd_start() {
 
     [[ -f "$STATE_DIR/env" ]] && cmd_stop >/dev/null 2>&1 || true
 
+    if pgrep -x start-hyprland >/dev/null; then
+        die "a desktop session (start-hyprland) owns the GPU; stop it first: sudo systemctl stop getty@tty1"
+    fi
+
     # Only one compositor can be DRM master of the (single) card at a time; a second
     # instance fails to allocate buffers and ends up with 0x0 outputs. Kill leftovers
     # (e.g. from a crashed hyprtester run).

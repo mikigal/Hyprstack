@@ -9,6 +9,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_DIR="${HS_LOG_DIR:-$HOME/.cache/hs-session}"
 mkdir -p "$LOG_DIR"
 
+# The VM console session (start-hyprland on tty1) owns the DRM card; killing it would just get it
+# restarted by autologin and fight the tests for the card.
+if pgrep -x start-hyprland >/dev/null; then
+    echo "a desktop session (start-hyprland) is running on this machine and owns the GPU." >&2
+    echo "stop it first: sudo systemctl stop getty@tty1   (start again: sudo systemctl start getty@tty1)" >&2
+    exit 1
+fi
+
 # a crashed run can leave a compositor behind holding DRM master
 pkill -x Hyprland 2>/dev/null && sleep 1
 pkill -9 -x Hyprland 2>/dev/null
