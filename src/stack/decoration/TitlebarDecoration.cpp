@@ -313,7 +313,7 @@ void CTitlebarDecoration::onButton(const IPointer::SButtonEvent& e, const Vector
         case BTN_MIDDLE: Desktop::windowState()->lower(W); return;
         case BTN_RIGHT:
             // window menu is the shell's job
-            IPC::Socket2::sock()->postEvent({.event = "titlebarmenu", .data = std::format("{:x},{},{}", rc<uintptr_t>(W.get()), sc<int>(pos.x), sc<int>(pos.y))});
+            windowStack()->requestWindowMenu(W, pos);
             return;
         default: return;
     }

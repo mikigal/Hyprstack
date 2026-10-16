@@ -154,6 +154,17 @@ static int hlWindowMoveToMonitor(lua_State* L) {
     return 1;
 }
 
+static int dsp_windowMenu(lua_State* L) {
+    return Internal::checkResult(L, Stack::Actions::windowMenu(Internal::windowFromUpval(L, 1)));
+}
+
+// hl.dsp.window.menu({ window = ... }): ask the shell for the window menu (Alt+Space)
+static int hlWindowMenu(lua_State* L) {
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_windowMenu, 1);
+    return 1;
+}
+
 void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "minimize", hlWindowMinimize, 1);
     Internal::setDispatcherFn(L, "maximize", hlWindowMaximize, 1);
@@ -162,6 +173,7 @@ void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "tile", hlWindowTile, 1);
     Internal::setDispatcherFn(L, "snap", hlWindowSnap, 1);
     Internal::setDispatcherFn(L, "move_to_monitor", hlWindowMoveToMonitor, 1);
+    Internal::setDispatcherFn(L, "menu", hlWindowMenu, 1);
 }
 
 static int dsp_showDesktop(lua_State* L) {

@@ -1,4 +1,5 @@
 #include "StackingFloatingAlgorithm.hpp"
+#include "../GeometryMemory.hpp"
 #include "../WindowStack.hpp"
 
 #include "../../layout/algorithm/Algorithm.hpp"
@@ -73,6 +74,13 @@ void CStackingFloatingAlgorithm::newTarget(SP<ITarget> target) {
 
     CBox        box = target->position().copy().addExtents(EXTENTS);
 
+    // remembered geometry of this app (size, and the position if it was on this monitor)
+    const auto RESTORE = Stack::geometryMemory()->restoreFor(target->window(), WORK_AREA);
+    if (RESTORE.size) {
+        box.w = RESTORE.size->x + EXTENTS.topLeft.x + EXTENTS.bottomRight.x;
+        box.h = RESTORE.size->y + EXTENTS.topLeft.y + EXTENTS.bottomRight.y;
+    }
+
     if (*PCLAMP) {
         box.w = std::min(box.w, WORK_AREA.w);
         box.h = std::min(box.h, WORK_AREA.h);
@@ -82,6 +90,8 @@ void CStackingFloatingAlgorithm::newTarget(SP<ITarget> target) {
 
     if (*PTRANSIENTS && PARENT && PARENT->m_workspace == target->window()->m_workspace)
         box = placeTransient(target, box, WORK_AREA);
+    else if (RESTORE.windowPos)
+        box = CBox{*RESTORE.windowPos - EXTENTS.topLeft, box.size()};
     else if (*PPLACEMENT == "center")
         box = placeCentered(box, WORK_AREA);
     else if (*PPLACEMENT == "cascade")

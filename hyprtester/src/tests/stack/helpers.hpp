@@ -39,6 +39,7 @@ namespace StackTest {
     Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnClient(const std::string& binary, const std::vector<std::string>& args, int timeoutMs = 15000);
 
     SWindowInfo                                                window(const std::string& cls);
+    std::vector<SWindowInfo>                                   windows(const std::string& cls);
     std::string                                                activeClass();
 
     // classes of all windows, bottom-most first

@@ -4,7 +4,9 @@
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 
+#include <filesystem>
 #include <format>
+#include <unistd.h>
 
 using namespace StackTest;
 
@@ -344,4 +346,38 @@ TEST_CASE(stackMoveToMonitor) {
     EXPECT_NOT(monitorNameOf("stack-a"), "");
 
     leaveStacking();
+}
+
+TEST_CASE(stackRememberGeometry) {
+    enterStacking();
+    const auto FILE = std::format("/tmp/hyprtester-geometry-{}", getpid());
+    std::filesystem::remove(FILE);
+    OK(getFromSocket(std::format("/eval hl.config({{ stacking = {{ remember_geometry = 'all', remember_geometry_file = '{}' }} }})", FILE)));
+
+    {
+        SPAWN_FOOT(a, "stack-mem");
+        OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 150, window = 'class:stack-mem' })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 500, y = 300, window = 'class:stack-mem' })"));
+        Tests::sync();
+    }
+    const auto BEFORE = window("stack-mem").box;
+    Tests::killAllWindows();
+    EXPECT(std::filesystem::exists(FILE), true);
+
+    // reopened: same size, same place
+    SPAWN_FOOT(b, "stack-mem");
+    const auto AFTER = window("stack-mem").box;
+    EXPECT(AFTER.w, BEFORE.w);
+    EXPECT(AFTER.h, BEFORE.h);
+    EXPECT(AFTER.x, BEFORE.x);
+    EXPECT(AFTER.y, BEFORE.y);
+
+    // a second instance doesn't land exactly on top of the first one
+    SPAWN_FOOT(c, "stack-mem");
+    const auto BOTH = windows("stack-mem");
+    ASSERT(BOTH.size(), 2);
+    EXPECT(BOTH[0].box.x == BOTH[1].box.x && BOTH[0].box.y == BOTH[1].box.y, false);
+
+    leaveStacking();
+    std::filesystem::remove(FILE);
 }

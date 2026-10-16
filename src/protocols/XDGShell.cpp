@@ -1,5 +1,8 @@
 #include "XDGShell.hpp"
 #include "../stack/StackMode.hpp"
+#include "../stack/WindowStack.hpp"
+#include "../stack/decoration/DecorationPolicy.hpp"
+#include "../config/ConfigValue.hpp"
 #include "XDGDialog.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
@@ -170,10 +173,16 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN;
         p      = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
         *p     = XDG_TOPLEVEL_WM_CAPABILITIES_MAXIMIZE;
-        // Hyprstack: windows can be minimized in stacking mode
+        // Hyprstack: windows can be minimized in stacking mode, and the shell provides a window menu
         if (Stack::stackingIsDefault()) {
             p  = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
             *p = XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE;
+
+            static auto PWINDOWMENU = CConfigValue<Config::INTEGER>("stacking:window_menu");
+            if (*PWINDOWMENU) {
+                p  = sc<uint32_t*>(wl_array_add(&arr, sizeof(uint32_t)));
+                *p = XDG_TOPLEVEL_WM_CAPABILITIES_WINDOW_MENU;
+            }
         }
         m_resource->sendWmCapabilities(&arr);
         wl_array_release(&arr);
@@ -297,6 +306,13 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         m_state.requestsFullscreen = false;
         m_events.stateChanged.emit();
         m_state.requestsFullscreen.reset();
+    });
+
+    // Hyprstack: the window menu is drawn by the shell, forward the request
+    m_resource->setShowWindowMenu([this](CXdgToplevel* r, wl_resource* seat, uint32_t serial, int32_t x, int32_t y) {
+        const auto WINDOW = m_window.lock();
+        if (WINDOW && Stack::windowIsStacking(WINDOW))
+            Stack::windowStack()->requestWindowMenu(WINDOW, Stack::mainSurfaceOrigin(WINDOW) + Vector2D{sc<double>(x), sc<double>(y)});
     });
 
     m_resource->setSetMinimized([this](CXdgToplevel* r) {

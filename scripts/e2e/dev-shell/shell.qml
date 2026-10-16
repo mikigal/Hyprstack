@@ -16,4 +16,6 @@ ShellRoot {
     }
 
     Switcher {}
+
+    WindowMenu {}
 }

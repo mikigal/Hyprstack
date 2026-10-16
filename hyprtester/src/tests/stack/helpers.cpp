@@ -16,7 +16,7 @@ static constexpr const char* EXTRA_MONITOR_NAME = "HEADLESS-STACK";
 
 void                         StackTest::enterStacking() {
     getFromSocket("/eval hl.config({ general = { layout = 'stacking', gaps_out = 0, gaps_in = 0, border_size = 1 }, animations = { enabled = false } })");
-    getFromSocket("/eval hl.config({ stacking = { placement = 'smart' } })");
+    getFromSocket("/eval hl.config({ stacking = { placement = 'smart', remember_geometry = 'none' } })");
 }
 
 void StackTest::leaveStacking() {
@@ -82,7 +82,9 @@ static int parseInt(const std::string& s) {
     } catch (...) { return -1; }
 }
 
-StackTest::SWindowInfo StackTest::window(const std::string& cls) {
+std::vector<StackTest::SWindowInfo> StackTest::windows(const std::string& cls) {
+    std::vector<SWindowInfo> result;
+
     for (const auto& block : clientBlocks()) {
         if (Tests::getAttribute(block, "class") != cls)
             continue;
@@ -103,10 +105,15 @@ StackTest::SWindowInfo StackTest::window(const std::string& cls) {
         info.layer        = parseInt(Tests::getAttribute(block, "stackLayer"));
         info.tiled        = parseInt(Tests::getAttribute(block, "tiled"));
         info.titlebar     = Tests::getAttribute(block, "titlebar") == "1";
-        return info;
+        result.emplace_back(info);
     }
 
-    return {};
+    return result;
+}
+
+StackTest::SWindowInfo StackTest::window(const std::string& cls) {
+    const auto ALL = windows(cls);
+    return ALL.empty() ? SWindowInfo{} : ALL.front();
 }
 
 std::string StackTest::activeClass() {

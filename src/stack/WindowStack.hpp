@@ -67,6 +67,9 @@ namespace Stack {
         CBox    tiledBox(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor = nullptr);
         bool    hasGeometryState(PHLWINDOW w) const;
 
+        // where a maximized / tiled window goes back to
+        std::optional<CBox> restoreBox(PHLWINDOW w) const;
+
         // the part of a work area a tile covers, decorations included
         static CBox tiledFrame(uint8_t edges, const CBox& workArea);
 
@@ -92,6 +95,10 @@ namespace Stack {
         // Move a window to the neighboring monitor in a direction, keeping its relative position
         // and its maximize / quick-tile state (Super + Shift + arrows on Windows)
         void moveToMonitor(PHLWINDOW w, Math::eDirection dir);
+
+        // Ask the shell to show the window menu for a window at a global position
+        // (socket2 event windowmenu>>ADDR,X,Y)
+        void requestWindowMenu(PHLWINDOW w, const Vector2D& pos);
 
         // "show desktop": minimize every visible window; toggling again restores them.
         // Restoring or opening any window ends the mode (like on Windows).

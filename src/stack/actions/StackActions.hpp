@@ -16,5 +16,6 @@ namespace Stack::Actions {
     ActionResult tile(uint8_t edges, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult snap(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult showDesktop();
+    ActionResult windowMenu(std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveToMonitor(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
 }

@@ -76,6 +76,11 @@ uint8_t CWindowStack::tiled(PHLWINDOW w) const {
     return DATA ? DATA->tiled : TILE_NONE;
 }
 
+std::optional<CBox> CWindowStack::restoreBox(PHLWINDOW w) const {
+    const auto DATA = find(w);
+    return DATA && hasGeometryState(w) ? DATA->restoreBox : std::nullopt;
+}
+
 bool CWindowStack::hasGeometryState(PHLWINDOW w) const {
     return maximized(w) != MAXIMIZE_NONE || tiled(w) != TILE_NONE;
 }
@@ -389,6 +394,13 @@ void CWindowStack::moveToMonitor(PHLWINDOW w, Math::eDirection dir) {
     frame.y    = std::clamp(frame.y, NEW_WA.y, NEW_WA.y + NEW_WA.h - frame.h);
 
     g_layoutManager->setTargetGeom(frame.addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight}), w->layoutTarget());
+}
+
+void CWindowStack::requestWindowMenu(PHLWINDOW w, const Vector2D& pos) {
+    if (!w)
+        return;
+
+    IPC::Socket2::sock()->postEvent({.event = "windowmenu", .data = std::format("{:x},{},{}", rc<uintptr_t>(w.get()), sc<int>(pos.x), sc<int>(pos.y))});
 }
 
 bool CWindowStack::showingDesktop() const {

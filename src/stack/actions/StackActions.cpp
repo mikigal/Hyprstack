@@ -4,6 +4,7 @@
 
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/view/window/Window.hpp"
+#include "../../layout/target/Target.hpp"
 
 using namespace Config::Actions;
 
@@ -103,5 +104,16 @@ ActionResult Stack::Actions::moveToMonitor(Math::eDirection dir, std::optional<P
         return notStacking();
 
     windowStack()->moveToMonitor(WINDOW, dir);
+    return {};
+}
+
+ActionResult Stack::Actions::windowMenu(std::optional<PHLWINDOW> w) {
+    const auto WINDOW = xtract(w);
+    if (!WINDOW)
+        return noTarget();
+
+    // like Alt+Space on Windows / KDE: the menu opens at the window's top-left corner
+    const auto BOX = WINDOW->layoutTarget() ? WINDOW->layoutTarget()->position() : CBox{};
+    windowStack()->requestWindowMenu(WINDOW, BOX.pos());
     return {};
 }

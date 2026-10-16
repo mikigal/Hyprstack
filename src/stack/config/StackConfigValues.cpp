@@ -16,6 +16,10 @@ std::vector<SP<IValue>> Stack::Config::getConfigValues() {
         MS<Int>("stacking:cascade_offset", "offset in logical pixels between cascaded windows", 32, {.min = 0, .max = 500}),
         MS<Bool>("stacking:raise_on_focus", "raise windows when they get focused by keyboard, dispatchers or activation (clicks always raise)", true),
         MS<Bool>("stacking:clamp_new_to_workarea", "shrink new windows that do not fit into the work area", true),
+        MS<String>("stacking:remember_geometry", "remember window geometry per app when it closes. [none/size/all] (all = size and position)", "all",
+                   {.validator = strChoice({"none", "size", "all"})}),
+        MS<String>("stacking:remember_geometry_file", "where remembered geometry is stored, empty for $XDG_STATE_HOME/hyprstack/window-geometry", ""),
+        MS<Bool>("stacking:window_menu", "tell clients a window menu exists (the shell draws it, see the windowmenu event)", true),
         MS<Bool>("stacking:decorate_csd", "draw border, shadow and rounding around windows that decorate themselves (GTK & co.)", false),
 
         /*

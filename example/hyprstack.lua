@@ -167,6 +167,7 @@ hl.bind(mod .. " + SHIFT + left",  hl.dsp.window.move_to_monitor({ direction = "
 hl.bind(mod .. " + SHIFT + right", hl.dsp.window.move_to_monitor({ direction = "right" }))
 hl.bind(mod .. " + D",         hl.dsp.show_desktop())
 hl.bind(mod .. " + F11",       hl.dsp.window.fullscreen())
+hl.bind("ALT + space",         hl.dsp.window.menu()) -- window menu, drawn by the shell
 
 -- window switcher: drawn by the shell (Quickshell), the compositor only forwards the shortcut
 hl.bind("ALT + Tab",           hl.dsp.global("hyprstack:alttab"))

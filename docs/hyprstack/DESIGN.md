@@ -162,7 +162,10 @@ niewyjaśnione, ręczne odtworzenie daje identyczny wynik na obu binarkach). Til
 - Roboczy shell do testów: `scripts/e2e/dev-shell/` (taskbar + Alt+Tab z miniaturami),
   `hs-session start --shell --plugin`. Znany problem roboczego shella: pierwsze Alt+Tab po starcie
   czasem gubi puszczenie Alt (fokus klawiatury layer-surface).
-- TODO: menu okna (prawy klik na belce / `xdg_toplevel.show_window_menu`) — po stronie shella.
+- Menu okna: kompozytor wysyła `windowmenu>>ADDR,X,Y` (prawy klik na belce, `hl.dsp.window.menu()` /
+  Alt+Spacja, `xdg_toplevel.show_window_menu`), ogłasza capability `WINDOW_MENU`; menu rysuje shell
+  (roboczy: `scripts/e2e/dev-shell/WindowMenu.qml`).
+- Pamięć geometrii per app-id (`src/stack/GeometryMemory.*`), plik w `$XDG_STATE_HOME/hyprstack/`.
 
 ### Faza 5 — domyślny config (zrobione)
 

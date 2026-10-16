@@ -33,6 +33,9 @@ Nowy użytkownik dostaje `example/hyprstack.lua`. Opcje specyficzne dla forka (`
 | `stacking.raise_on_focus` | `true` | fokus z klawiatury/aktywacji wynosi okno |
 | `stacking.clamp_new_to_workarea` | `true` | zbyt duże nowe okna są zmniejszane |
 | `stacking.decorate_csd` | `false` | ramka/cień/zaokrąglenia także dla okien CSD |
+| `stacking.remember_geometry` | `all` | zapamiętywanie geometrii okien per aplikacja: `none` / `size` / `all` (rozmiar i pozycja na tym samym monitorze) |
+| `stacking.remember_geometry_file` | `""` | plik pamięci (domyślnie `$XDG_STATE_HOME/hyprstack/window-geometry`) |
+| `stacking.window_menu` | `true` | informuje klientów, że jest menu okna (rysuje je shell, event `windowmenu`) |
 | `stacking.titlebar.*` | | `enabled`, `height`, `font_family`, `font_size`, `text_align`, `padding`, `buttons`, `button_width`, `double_click`, kolory `col.*` |
 | `stacking.quick_tile.*` | | `enabled`, `edge_threshold`, `corner_size`, `top_action` (`maximize`/`tile`/`none`), `col.preview`, `col.preview_border` |
 
@@ -49,13 +52,15 @@ Tiling nadal istnieje (`general.layout = "dwindle"` itd.), ale nie jest rozwijan
 | `hl.dsp.window.move_to_monitor({ direction, window })` | z zachowaniem pozycji i stanu |
 | `hl.dsp.window.keep_above({ action, window })`, `keep_below` | warstwy |
 | `hl.dsp.show_desktop()` | Win+D |
+| `hl.dsp.window.menu({ window })` | menu okna (Alt+Spacja) — event `windowmenu` dla shella |
 
 ## IPC dla shella
 
 - `hyprctl clients -j`: `minimized`, `maximized` (0 / 1 = poziomo / 2 = pionowo / 3 = pełny), `tiled`
   (bitmaska 1 = lewo, 2 = prawo, 4 = góra, 8 = dół), `stackLayer` (0 / 1 / 2), `focusHistoryID` (MRU).
 - socket2: `minimized>>ADDR,0|1`, `maximized>>ADDR,MODE`, `tiled>>ADDR,EDGES`, `stacklayer>>ADDR,LAYER`,
-  `showdesktop>>0|1`, `titlebarmenu>>ADDR,X,Y` (prawy klik na belce → menu okna rysuje shell).
+  `showdesktop>>0|1`, `windowmenu>>ADDR,X,Y` (prawy klik na belce, Alt+Spacja, `show_window_menu`
+  od aplikacji → menu okna rysuje shell).
 
 ## Uruchomienie na prawdziwym ekranie (VM / sprzęt)
 
