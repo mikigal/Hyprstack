@@ -102,20 +102,20 @@ void CStackingFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<V
 
     // e.g. moved to another monitor: maximized windows follow the new work area
     if (target->window())
-        Stack::windowStack()->refitMaximized(target->window());
+        Stack::windowStack()->refitGeometry(target->window());
 }
 
 void CStackingFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
     // a manual resize ends maximize, keeping the current geometry
     if (target->window())
-        Stack::windowStack()->dropMaximized(target->window());
+        Stack::windowStack()->dropGeometryState(target->window());
 
     CDefaultFloatingAlgorithm::resizeTarget(Δ, target, corner);
 }
 
 void CStackingFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     if (target->window())
-        Stack::windowStack()->dropMaximized(target->window());
+        Stack::windowStack()->dropGeometryState(target->window());
 
     CDefaultFloatingAlgorithm::moveTarget(Δ, target);
 }
@@ -127,7 +127,7 @@ void CStackingFloatingAlgorithm::recalculate(eRecalculateReason reason) {
     for (const auto& [weakTarget, data] : m_datas) {
         const auto TARGET = weakTarget.lock();
         if (TARGET && TARGET->window())
-            Stack::windowStack()->refitMaximized(TARGET->window());
+            Stack::windowStack()->refitGeometry(TARGET->window());
     }
 }
 

@@ -339,6 +339,12 @@ void CWaylandBackend::setFullscreen(bool fullscreen) {
         RESOURCE->m_toplevel->setFullscreen(fullscreen);
 }
 
+void CWaylandBackend::setTiledEdges(uint32_t stateMask) {
+    const auto RESOURCE = m_resource.lock();
+    if (RESOURCE && RESOURCE->m_toplevel)
+        RESOURCE->m_toplevel->setTiledEdges(stateMask);
+}
+
 void CWaylandBackend::setMaximized(bool maximized) {
     // Hyprstack: stacking windows get their real maximized state
     if (Stack::windowIsStacking(m_window.lock())) {

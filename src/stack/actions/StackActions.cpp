@@ -1,4 +1,5 @@
 #include "StackActions.hpp"
+#include "../QuickTile.hpp"
 #include "../StackMode.hpp"
 
 #include "../../desktop/state/FocusState.hpp"
@@ -65,4 +66,26 @@ ActionResult Stack::Actions::keepAbove(eTogglableAction action, std::optional<PH
 
 ActionResult Stack::Actions::keepBelow(eTogglableAction action, std::optional<PHLWINDOW> w) {
     return setLayerToggle(action, LAYER_BELOW, w);
+}
+
+ActionResult Stack::Actions::tile(uint8_t edges, std::optional<PHLWINDOW> w) {
+    const auto WINDOW = xtract(w);
+    if (!WINDOW)
+        return noTarget();
+    if (!windowIsStacking(WINDOW))
+        return notStacking();
+
+    windowStack()->setTiled(WINDOW, edges);
+    return {};
+}
+
+ActionResult Stack::Actions::snap(Math::eDirection dir, std::optional<PHLWINDOW> w) {
+    const auto WINDOW = xtract(w);
+    if (!WINDOW)
+        return noTarget();
+    if (!windowIsStacking(WINDOW))
+        return notStacking();
+
+    quickTile()->snap(WINDOW, dir);
+    return {};
 }

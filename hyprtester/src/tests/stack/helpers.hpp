@@ -25,6 +25,7 @@ namespace StackTest {
         bool        minimized = false;
         int         maximized = 0;
         int         layer     = 1;
+        int         tiled     = 0;
     };
 
     // switch the running compositor to stacking mode / restore the test config
@@ -42,6 +43,12 @@ namespace StackTest {
 
     // geometry of the monitor the given window is on (logical, minus reserved areas)
     SBox workAreaOf(const std::string& cls);
+
+    // name of the monitor the window is on
+    std::string monitorNameOf(const std::string& cls);
+
+    // create an extra monitor right of the window's monitor (removed by leaveStacking())
+    void placeMonitorRightOf(const std::string& cls);
 }
 
 #define SPAWN_FOOT(var, cls, ...)                                                                                                                                                  \

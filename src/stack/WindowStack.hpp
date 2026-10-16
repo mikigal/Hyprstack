@@ -28,11 +28,21 @@ namespace Stack {
         MAXIMIZE_FULL       = MAXIMIZE_HORIZONTAL | MAXIMIZE_VERTICAL,
     };
 
+    // quick-tile: the screen edges a window is tiled against. One edge = half, two = quarter.
+    enum eTileEdges : uint8_t {
+        TILE_NONE   = 0,
+        TILE_LEFT   = (1 << 0),
+        TILE_RIGHT  = (1 << 1),
+        TILE_TOP    = (1 << 2),
+        TILE_BOTTOM = (1 << 3),
+    };
+
     struct SWindowStackData {
         eStackLayer layer     = LAYER_NORMAL;
         uint8_t     maximized = MAXIMIZE_NONE;
+        uint8_t     tiled     = TILE_NONE;
 
-        // window box (global, without decorations) to go back to when leaving maximize
+        // window box (global, without decorations) to go back to when leaving maximize / quick-tile
         std::optional<CBox> restoreBox;
     };
 
@@ -49,15 +59,25 @@ namespace Stack {
         uint8_t maximized(PHLWINDOW w) const;
         CBox    maximizedBox(PHLWINDOW w, uint8_t mode);
 
-        // re-apply maximized geometry, e.g. after the work area changed
-        void refitMaximized(PHLWINDOW w);
+        // quick-tile. Maximize and quick-tile are exclusive and share the restore geometry.
+        // monitor: tile onto another monitor (default: the window's own)
+        void    setTiled(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor = nullptr);
+        uint8_t tiled(PHLWINDOW w) const;
+        CBox    tiledBox(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor = nullptr);
+        bool    hasGeometryState(PHLWINDOW w) const;
 
-        // forget the maximized state without touching the geometry (manual move / resize)
-        void dropMaximized(PHLWINDOW w);
+        // the part of a work area a tile covers, decorations included
+        static CBox tiledFrame(uint8_t edges, const CBox& workArea);
 
-        // A maximized window is being dragged: leave maximize, shrink to the restore size and
-        // return the new grab point (relative to the window) so the cursor keeps its relative
-        // position along the titlebar. nullopt if the window wasn't maximized.
+        // re-apply maximized / tiled geometry, e.g. after the work area changed
+        void refitGeometry(PHLWINDOW w);
+
+        // forget maximize / quick-tile without touching the geometry (manual move / resize)
+        void dropGeometryState(PHLWINDOW w);
+
+        // A maximized / tiled window is being dragged: leave that state, shrink to the restore
+        // size and return the new grab point (relative to the window) so the cursor keeps its
+        // relative position along the titlebar. nullopt if the window had no such state.
         std::optional<Vector2D> restoreForDrag(PHLWINDOW w, const Vector2D& hotspot);
 
         // minimize
@@ -84,7 +104,8 @@ namespace Stack {
         SWindowStackData&                        data(PHLWINDOW w);
         const SWindowStackData*                  find(PHLWINDOW w) const;
         void                                     purgeExpired();
-        void                                     postMaximizeState(PHLWINDOW w);
+        void                                     postGeometryState(PHLWINDOW w);
+        void                                     applyGeometryState(PHLWINDOW w, PHLMONITOR monitor = nullptr);
         void                                     focusNextAfter(PHLWINDOW w);
 
         std::map<PHLWINDOWREF, SWindowStackData> m_data;

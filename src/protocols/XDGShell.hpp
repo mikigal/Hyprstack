@@ -118,6 +118,7 @@ class CXDGToplevelResource {
     uint32_t setMaximized(bool maximized);
     uint32_t setFullscreen(bool fullscreen);
     uint32_t setActive(bool active);
+    uint32_t setTiledEdges(uint32_t stateMask); // Hyprstack: 1 << XDG_TOPLEVEL_STATE_TILED_*
     uint32_t setResizing(bool resizing);
     uint32_t setSuspeneded(bool sus);
     void     setNewParent(SP<CXDGToplevelResource> newParent);

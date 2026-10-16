@@ -17,6 +17,7 @@ namespace Desktop::View {
         SP<CWLSurfaceResource> surface() const override;
         PHLWINDOW              parent() const override;
         SBackendClientID       clientID() const override;
+        void                   setTiledEdges(uint32_t stateMask); // Hyprstack: 1 << XDG_TOPLEVEL_STATE_TILED_*
 
         bool                   initialCommit() const override;
         SClientGeometry        geometry() const override;

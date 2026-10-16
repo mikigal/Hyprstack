@@ -1,4 +1,5 @@
 #include "DragController.hpp"
+#include "../../stack/QuickTile.hpp"
 #include "../../stack/WindowStack.hpp"
 #include "../../desktop/view/window/WindowEffectsController.hpp"
 #include "../../desktop/view/window/WindowGroupMembership.hpp"
@@ -419,6 +420,8 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
         DRAGGINGTARGET->setPositionGlobal({newPos, newSize});
         DRAGGINGTARGET->warpPositionSize();
+
+        Stack::quickTile()->onDragMotion(DRAGGINGTARGET, mousePos); // Hyprstack: quick-tile preview
     } else if (isResizeMode(m_dragMode)) {
         if (DRAGGINGTARGET->floating()) {
 

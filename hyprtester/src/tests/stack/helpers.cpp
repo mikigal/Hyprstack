@@ -12,13 +12,17 @@
 using namespace Hyprutils::Memory;
 using namespace Hyprutils::OS;
 
-void StackTest::enterStacking() {
+static constexpr const char* EXTRA_MONITOR_NAME = "HEADLESS-STACK";
+
+void                         StackTest::enterStacking() {
     getFromSocket("/eval hl.config({ general = { layout = 'stacking', gaps_out = 0, gaps_in = 0, border_size = 1 }, animations = { enabled = false } })");
     getFromSocket("/eval hl.config({ stacking = { placement = 'smart' } })");
 }
 
 void StackTest::leaveStacking() {
     Tests::killAllWindows();
+    if (getFromSocket("/monitors").contains(EXTRA_MONITOR_NAME))
+        getFromSocket(std::string{"/output remove "} + EXTRA_MONITOR_NAME);
     getFromSocket("/reload");
 }
 
@@ -91,6 +95,7 @@ StackTest::SWindowInfo StackTest::window(const std::string& cls) {
         info.minimized    = Tests::getAttribute(block, "minimized") == "1";
         info.maximized    = parseInt(Tests::getAttribute(block, "maximized"));
         info.layer        = parseInt(Tests::getAttribute(block, "stackLayer"));
+        info.tiled        = parseInt(Tests::getAttribute(block, "tiled"));
         return info;
     }
 
@@ -152,4 +157,34 @@ StackTest::SBox StackTest::workAreaOf(const std::string& cls) {
     rs >> rl >> rt >> rr >> rb;
 
     return {x + rl, y + rt, w - rl - rr, h - rt - rb};
+}
+
+std::string StackTest::monitorNameOf(const std::string& cls) {
+    std::string monitorID;
+    for (const auto& b : clientBlocks()) {
+        if (Tests::getAttribute(b, "class") == cls)
+            monitorID = Tests::getAttribute(b, "monitor");
+    }
+
+    const auto MONITORS = getFromSocket("/monitors");
+    const auto HEADER   = std::format("(ID {}):", monitorID);
+    const auto POS      = MONITORS.find(HEADER);
+    if (POS == std::string::npos)
+        return "";
+
+    const auto LINE_START = MONITORS.rfind("Monitor ", POS) + 8;
+    return MONITORS.substr(LINE_START, POS - 1 - LINE_START);
+}
+
+static constexpr const char* EXTRA_MONITOR = EXTRA_MONITOR_NAME;
+
+void                         StackTest::placeMonitorRightOf(const std::string& cls) {
+    const auto AREA = workAreaOf(cls);
+
+    // pin the window's monitor first: test.lua uses "auto-right", which would rearrange it
+    getFromSocket(std::format("/eval hl.monitor({{ output = '{}', mode = '{}x{}@60', position = '{}x{}', scale = '1' }})", monitorNameOf(cls), AREA.w, AREA.h, AREA.x, AREA.y));
+    getFromSocket(std::format("/output create headless {}", EXTRA_MONITOR));
+    getFromSocket(std::format("/eval hl.monitor({{ output = '{}', mode = '1920x1080@60', position = '{}x{}', scale = '1' }})", EXTRA_MONITOR, AREA.x + AREA.w, AREA.y));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    Tests::sync();
 }

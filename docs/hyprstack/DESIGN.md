@@ -110,6 +110,19 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 - Rozmieszczanie przewiduje wymiary ramki i belki przed zmapowaniem (positioner pomija niezmapowane
   okna); pozycje X11 równe narożnikowi monitora traktowane jako "brak preferencji".
 
+### Faza 3 — quick-tile i snap (zrobione)
+
+- `Stack::CQuickTileController` (`src/stack/QuickTile.*`): przeciągnięcie okna do zewnętrznej krawędzi
+  ekranu → połowa, róg (`stacking:quick_tile:corner_size`) → ćwiartka, góra → maximize
+  (`top_action`). Krawędzie wspólne z innym monitorem nie reagują (przenoszenie okien między
+  monitorami). Podgląd rysowany tuż przed przeciąganym oknem (nad innymi, pod nim), z blurem.
+- Stan kafla w `CWindowStack` (bitmaska krawędzi), wspólna geometria przywracania z maximize,
+  stany xdg `tiled_*` dla klienta, przeliczanie przy zmianie obszaru roboczego, przeciągnięcie
+  kafla przywraca rozmiar.
+- Dispatchery: `hl.dsp.window.tile({edges})`, `hl.dsp.window.snap({direction})` — semantyka Win+strzałki
+  (←/→ połowa, ponownie → kolejny monitor, przeciwny kierunek przywraca; ↑ ćwiartka/maximize;
+  ↓ ćwiartka/przywrócenie/minimize). IPC: pole `tiled`, event `tiled>>ADDR,EDGES`.
+
 ### Haki w plikach upstreamu (sprawdzać przy merge'ach)
 
 | Plik | Hak |
@@ -132,4 +145,7 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 | `desktop/view/window/Window.cpp` (`getFullWindowExtents`) | nadmiar powierzchni CSD w extents |
 | `render/Renderer.cpp` (`renderWindow`) | offset geometrii xdg dla okien stacking |
 | `protocols/XDGDecoration.*`, `protocols/ServerDecorationKDE.*` | zapytanie "czy okno ma SSD" |
-| `protocols/XDGShell.cpp` | bez stanów `tiled` i z capability `MINIMIZE` w trybie stacking |
+| `protocols/XDGShell.*` | bez stanów `tiled` i z capability `MINIMIZE` w trybie stacking, `setTiledEdges()` |
+| `desktop/view/window/WaylandBackend.*` | `setTiledEdges()` |
+| `layout/supplementary/DragController.cpp` | drag-restore maximized/tiled, podgląd quick-tile |
+| `managers/input/InputManager.cpp` | ramka resize-on-border obejmuje belkę |

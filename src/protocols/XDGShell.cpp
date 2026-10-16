@@ -424,6 +424,32 @@ uint32_t CXDGToplevelResource::setFullscreen(bool fullscreen) {
     return m_owner->scheduleConfigure();
 }
 
+uint32_t CXDGToplevelResource::setTiledEdges(uint32_t stateMask) {
+    if (m_resource->version() < 2)
+        return m_owner->m_scheduledSerial;
+
+    bool changed = false;
+    for (const auto STATE : {XDG_TOPLEVEL_STATE_TILED_LEFT, XDG_TOPLEVEL_STATE_TILED_RIGHT, XDG_TOPLEVEL_STATE_TILED_TOP, XDG_TOPLEVEL_STATE_TILED_BOTTOM}) {
+        const bool WANT = stateMask & (1u << STATE);
+        const bool SET  = std::ranges::find(m_pendingApply.states, STATE) != m_pendingApply.states.end();
+
+        if (WANT == SET)
+            continue;
+
+        if (WANT)
+            m_pendingApply.states.push_back(STATE);
+        else
+            std::erase(m_pendingApply.states, STATE);
+        changed = true;
+    }
+
+    if (!changed)
+        return m_owner->m_scheduledSerial;
+
+    scheduleStateApplication();
+    return m_owner->scheduleConfigure();
+}
+
 uint32_t CXDGToplevelResource::setActive(bool active) {
     bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_ACTIVATED) != m_pendingApply.states.end();
 

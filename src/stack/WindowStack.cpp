@@ -2,10 +2,12 @@
 #include "StackMode.hpp"
 
 #include "../config/ConfigValue.hpp"
+#include "../config/shared/actions/ConfigActions.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/state/WindowState.hpp"
 #include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WaylandBackend.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../event/EventBus.hpp"
 #include "../ipc/s2/S2.hpp"
@@ -13,11 +15,14 @@
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
+#include "../output/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../workspace/HLWorkspace.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
+#include <xdg-shell.hpp>
 #include <ranges>
 
 using namespace Stack;
@@ -63,15 +68,34 @@ uint8_t CWindowStack::maximized(PHLWINDOW w) const {
     return DATA ? DATA->maximized : MAXIMIZE_NONE;
 }
 
+uint8_t CWindowStack::tiled(PHLWINDOW w) const {
+    const auto DATA = find(w);
+    return DATA ? DATA->tiled : TILE_NONE;
+}
+
+bool CWindowStack::hasGeometryState(PHLWINDOW w) const {
+    return maximized(w) != MAXIMIZE_NONE || tiled(w) != TILE_NONE;
+}
+
+static CBox workAreaFor(PHLWINDOW w, PHLMONITOR monitor) {
+    if (monitor && monitor->m_activeWorkspace && monitor->m_activeWorkspace->space())
+        return monitor->m_activeWorkspace->space()->workArea(true);
+
+    const auto TARGET = w->layoutTarget();
+    return TARGET && TARGET->space() ? TARGET->space()->workArea(true) : CBox{};
+}
+
+static CBox stripExtents(PHLWINDOW w, const CBox& full) {
+    const auto EXTENTS = w->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS);
+    return full.copy().addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight});
+}
+
 CBox CWindowStack::maximizedBox(PHLWINDOW w, uint8_t mode) {
     const auto TARGET = w->layoutTarget();
-    const auto SPACE  = TARGET ? TARGET->space() : nullptr;
-    if (!SPACE)
+    if (!TARGET || !TARGET->space())
         return TARGET ? TARGET->position() : CBox{};
 
-    const auto EXTENTS   = w->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS);
-    const auto WORK_AREA = SPACE->workArea(true);
-    const CBox FULL      = WORK_AREA.copy().addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight});
+    const CBox FULL = stripExtents(w, TARGET->space()->workArea(true));
 
     // partial maximize keeps the other axis from the restore geometry
     const auto& DATA = data(w);
@@ -90,32 +114,70 @@ CBox CWindowStack::maximizedBox(PHLWINDOW w, uint8_t mode) {
     return box;
 }
 
+CBox CWindowStack::tiledFrame(uint8_t edges, const CBox& workArea) {
+    CBox box = workArea;
+
+    if ((edges & TILE_LEFT) != (edges & TILE_RIGHT)) {
+        box.w = std::round(workArea.w / 2.0);
+        if (edges & TILE_RIGHT)
+            box.x = workArea.x + workArea.w - box.w;
+    }
+
+    if ((edges & TILE_TOP) != (edges & TILE_BOTTOM)) {
+        box.h = std::round(workArea.h / 2.0);
+        if (edges & TILE_BOTTOM)
+            box.y = workArea.y + workArea.h - box.h;
+    }
+
+    return box;
+}
+
+CBox CWindowStack::tiledBox(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor) {
+    return stripExtents(w, tiledFrame(edges, workAreaFor(w, monitor)));
+}
+
+void CWindowStack::applyGeometryState(PHLWINDOW w, PHLMONITOR monitor) {
+    auto&      DATA   = data(w);
+    const auto TARGET = w->layoutTarget();
+
+    if (DATA.maximized != MAXIMIZE_NONE)
+        g_layoutManager->setTargetGeom(maximizedBox(w, DATA.maximized), TARGET);
+    else if (DATA.tiled != TILE_NONE)
+        g_layoutManager->setTargetGeom(tiledBox(w, DATA.tiled, monitor), TARGET);
+    else if (DATA.restoreBox)
+        g_layoutManager->setTargetGeom(*DATA.restoreBox, TARGET);
+
+    if (DATA.maximized == MAXIMIZE_NONE && DATA.tiled == TILE_NONE)
+        DATA.restoreBox.reset();
+
+    w->backend().setMaximized(DATA.maximized == MAXIMIZE_FULL);
+
+    // quick-tiled windows are told all edges are tiled: CSD drops shadows and rounded corners
+    if (const auto WL = dc<Desktop::View::CWaylandBackend*>(&w->backend()); WL) {
+        constexpr uint32_t ALL_TILED =
+            (1u << XDG_TOPLEVEL_STATE_TILED_LEFT) | (1u << XDG_TOPLEVEL_STATE_TILED_RIGHT) | (1u << XDG_TOPLEVEL_STATE_TILED_TOP) | (1u << XDG_TOPLEVEL_STATE_TILED_BOTTOM);
+        WL->setTiledEdges(DATA.tiled != TILE_NONE ? ALL_TILED : 0);
+    }
+
+    w->presentation().updateDecorations();
+}
+
 void CWindowStack::setMaximized(PHLWINDOW w, uint8_t mode) {
     if (!w || !w->layoutTarget() || !windowIsStacking(w))
         return;
 
     auto& DATA = data(w);
-    if (DATA.maximized == mode)
+    if (DATA.maximized == mode && DATA.tiled == TILE_NONE)
         return;
 
-    const auto TARGET = w->layoutTarget();
-
-    if (DATA.maximized == MAXIMIZE_NONE)
-        DATA.restoreBox = TARGET->position();
+    if (!hasGeometryState(w))
+        DATA.restoreBox = w->layoutTarget()->position();
 
     DATA.maximized = mode;
+    DATA.tiled     = TILE_NONE;
 
-    if (mode == MAXIMIZE_NONE) {
-        if (DATA.restoreBox)
-            g_layoutManager->setTargetGeom(*DATA.restoreBox, TARGET);
-        DATA.restoreBox.reset();
-    } else
-        g_layoutManager->setTargetGeom(maximizedBox(w, mode), TARGET);
-
-    w->backend().setMaximized(mode == MAXIMIZE_FULL);
-    w->presentation().updateDecorations();
-
-    postMaximizeState(w);
+    applyGeometryState(w);
+    postGeometryState(w);
 }
 
 void CWindowStack::toggleMaximized(PHLWINDOW w, uint8_t mode) {
@@ -125,40 +187,69 @@ void CWindowStack::toggleMaximized(PHLWINDOW w, uint8_t mode) {
     setMaximized(w, maximized(w) == mode ? MAXIMIZE_NONE : mode);
 }
 
-void CWindowStack::refitMaximized(PHLWINDOW w) {
-    const auto MODE = maximized(w);
-    if (MODE == MAXIMIZE_NONE || !w->layoutTarget())
+void CWindowStack::setTiled(PHLWINDOW w, uint8_t edges, PHLMONITOR monitor) {
+    if (!w || !w->layoutTarget() || !windowIsStacking(w))
         return;
 
-    const auto BOX = maximizedBox(w, MODE);
+    auto& DATA = data(w);
+    if (DATA.tiled == edges && DATA.maximized == MAXIMIZE_NONE && !monitor)
+        return;
+
+    if (!hasGeometryState(w))
+        DATA.restoreBox = w->layoutTarget()->position();
+
+    // tiling onto another monitor: move the window (and its restore geometry) there first
+    if (monitor && w->m_monitor && monitor != w->m_monitor.lock()) {
+        if (DATA.restoreBox)
+            DATA.restoreBox->translate(monitor->m_position - w->m_monitor->m_position);
+        if (monitor->m_activeWorkspace && w->m_workspace != monitor->m_activeWorkspace)
+            (void)Config::Actions::moveToWorkspace(monitor->m_activeWorkspace, true, w);
+    }
+
+    DATA.tiled     = edges;
+    DATA.maximized = MAXIMIZE_NONE;
+
+    applyGeometryState(w, monitor);
+    postGeometryState(w);
+}
+
+void CWindowStack::refitGeometry(PHLWINDOW w) {
+    if (!w->layoutTarget() || !hasGeometryState(w))
+        return;
+
+    const auto DATA = *find(w);
+    const auto BOX  = DATA.maximized != MAXIMIZE_NONE ? maximizedBox(w, DATA.maximized) : tiledBox(w, DATA.tiled, w->m_monitor.lock());
     if (BOX == w->layoutTarget()->position())
         return;
 
     g_layoutManager->setTargetGeom(BOX, w->layoutTarget());
 }
 
-void CWindowStack::dropMaximized(PHLWINDOW w) {
+void CWindowStack::dropGeometryState(PHLWINDOW w) {
     const auto IT = m_data.find(w);
-    if (IT == m_data.end() || IT->second.maximized == MAXIMIZE_NONE)
+    if (IT == m_data.end() || (IT->second.maximized == MAXIMIZE_NONE && IT->second.tiled == TILE_NONE))
         return;
 
     IT->second.maximized = MAXIMIZE_NONE;
+    IT->second.tiled     = TILE_NONE;
     IT->second.restoreBox.reset();
 
     w->backend().setMaximized(false);
+    if (const auto WL = dc<Desktop::View::CWaylandBackend*>(&w->backend()); WL)
+        WL->setTiledEdges(0);
     w->presentation().updateDecorations();
 
-    postMaximizeState(w);
+    postGeometryState(w);
 }
 
 std::optional<Vector2D> CWindowStack::restoreForDrag(PHLWINDOW w, const Vector2D& hotspot) {
-    if (!w || !w->layoutTarget() || maximized(w) == MAXIMIZE_NONE)
+    if (!w || !w->layoutTarget() || !hasGeometryState(w))
         return std::nullopt;
 
     const auto CURRENT = w->layoutTarget()->position();
     const auto RESTORE = data(w).restoreBox.value_or(CURRENT);
 
-    dropMaximized(w);
+    dropGeometryState(w);
 
     const Vector2D NEW_HOTSPOT = {CURRENT.w > 0 ? hotspot.x / CURRENT.w * RESTORE.w : hotspot.x, hotspot.y};
     w->layoutTarget()->setPositionGlobal(CBox{CURRENT.pos() + hotspot - NEW_HOTSPOT, RESTORE.size()});
@@ -166,8 +257,9 @@ std::optional<Vector2D> CWindowStack::restoreForDrag(PHLWINDOW w, const Vector2D
     return NEW_HOTSPOT;
 }
 
-void CWindowStack::postMaximizeState(PHLWINDOW w) {
+void CWindowStack::postGeometryState(PHLWINDOW w) {
     IPC::Socket2::sock()->postEvent({.event = "maximized", .data = std::format("{:x},{}", rc<uintptr_t>(w.get()), maximized(w))});
+    IPC::Socket2::sock()->postEvent({.event = "tiled", .data = std::format("{:x},{}", rc<uintptr_t>(w.get()), tiled(w))});
 
     // foreign-toplevel & friends refresh their state on this event
     Event::bus()->m_events.window.fullscreen.emit(w);

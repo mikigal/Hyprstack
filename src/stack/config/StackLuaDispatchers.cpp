@@ -6,6 +6,8 @@
 
 #include <lua.h>
 
+#include <unordered_map>
+
 using namespace Config::Lua::Bindings;
 namespace CA = Config::Actions;
 
@@ -80,9 +82,64 @@ static int hlWindowKeepBelow(lua_State* L) {
     return 1;
 }
 
+// upvalues: 1 = edges, 2 = window
+static int dsp_tile(lua_State* L) {
+    return Internal::checkResult(L, Stack::Actions::tile(sc<uint8_t>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
+}
+
+// upvalues: 1 = direction, 2 = window
+static int dsp_snap(lua_State* L) {
+    return Internal::checkResult(L, Stack::Actions::snap(sc<Math::eDirection>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
+}
+
+// hl.dsp.window.tile({ edges = "left"|"right"|"top"|"bottom"|"top_left"|"top_right"|"bottom_left"|"bottom_right"|"none", window = ... })
+static int hlWindowTile(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.dsp.window.tile: expected a table { edges, window? }");
+
+    static const std::unordered_map<std::string, uint8_t> EDGES = {
+        {"none", Stack::TILE_NONE},
+        {"left", Stack::TILE_LEFT},
+        {"right", Stack::TILE_RIGHT},
+        {"top", Stack::TILE_TOP},
+        {"bottom", Stack::TILE_BOTTOM},
+        {"top_left", Stack::TILE_TOP | Stack::TILE_LEFT},
+        {"top_right", Stack::TILE_TOP | Stack::TILE_RIGHT},
+        {"bottom_left", Stack::TILE_BOTTOM | Stack::TILE_LEFT},
+        {"bottom_right", Stack::TILE_BOTTOM | Stack::TILE_RIGHT},
+    };
+
+    const auto NAME = Internal::tableOptStr(L, 1, "edges").value_or("");
+    const auto IT   = EDGES.find(NAME);
+    if (IT == EDGES.end())
+        return Internal::configError(L, "hl.dsp.window.tile: invalid edges \"{}\"", NAME);
+
+    lua_pushnumber(L, IT->second);
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_tile, 2);
+    return 1;
+}
+
+// hl.dsp.window.snap({ direction = "left"|"right"|"up"|"down", window = ... }): Windows-like Super + arrows
+static int hlWindowSnap(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.dsp.window.snap: expected a table { direction, window? }");
+
+    const auto DIR = Math::fromChar(Internal::tableOptStr(L, 1, "direction").value_or(" ")[0]);
+    if (DIR == Math::DIRECTION_DEFAULT)
+        return Internal::configError(L, "hl.dsp.window.snap: invalid direction (expected left/right/up/down)");
+
+    lua_pushnumber(L, (int)DIR);
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_snap, 2);
+    return 1;
+}
+
 void Stack::Lua::registerWindowDispatchers(lua_State* L) {
     Internal::setDispatcherFn(L, "minimize", hlWindowMinimize, 1);
     Internal::setDispatcherFn(L, "maximize", hlWindowMaximize, 1);
     Internal::setDispatcherFn(L, "keep_above", hlWindowKeepAbove, 1);
     Internal::setDispatcherFn(L, "keep_below", hlWindowKeepBelow, 1);
+    Internal::setDispatcherFn(L, "tile", hlWindowTile, 1);
+    Internal::setDispatcherFn(L, "snap", hlWindowSnap, 1);
 }

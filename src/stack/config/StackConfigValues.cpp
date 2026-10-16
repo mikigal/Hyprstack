@@ -19,6 +19,18 @@ std::vector<SP<IValue>> Stack::Config::getConfigValues() {
         MS<Bool>("stacking:decorate_csd", "draw border, shadow and rounding around windows that decorate themselves (GTK & co.)", false),
 
         /*
+         * stacking:quick_tile:
+         */
+
+        MS<Bool>("stacking:quick_tile:enabled", "tile windows by dragging them against outer screen edges (half) and corners (quarter)", true),
+        MS<Int>("stacking:quick_tile:edge_threshold", "how close to a screen edge the cursor has to be, in logical pixels", 4, {.min = 0, .max = 100}),
+        MS<Int>("stacking:quick_tile:corner_size", "size of the corner areas that tile to a quarter, in logical pixels", 80, {.min = 0, .max = 1000}),
+        MS<String>("stacking:quick_tile:top_action", "what dragging against the top edge does. [maximize/tile/none]", "maximize",
+                   {.validator = strChoice({"maximize", "tile", "none"})}),
+        MS<Color>("stacking:quick_tile:col.preview", "fill color of the quick-tile preview", 0x33ffffff),
+        MS<Color>("stacking:quick_tile:col.preview_border", "border color of the quick-tile preview", 0x99ffffff),
+
+        /*
          * stacking:titlebar:
          */
 
