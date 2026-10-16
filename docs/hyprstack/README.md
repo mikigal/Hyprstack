@@ -60,6 +60,8 @@ Tiling nadal istnieje (`general.layout = "dwindle"` itd.), ale nie jest rozwijan
 ## Rozwój
 
 - Build: `cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DTESTS=true -S . -B build && cmake --build build`
+- Sesja do ręcznego klikania: `scripts/e2e/hs-session start --default-config --res 1920x1080 --vnc 5900 --shell`,
+  potem `ssh -L 5900:127.0.0.1:5900 claude@<vm>` i klient VNC na `localhost:5900`.
 - Sesja testowa headless: `scripts/e2e/hs-session start [--vnc 5900] [--shell] [--plugin]`, potem
   `spawn`, `exec`, `ctl`, `shot`, `stop`. Podgląd przez VNC: `ssh -L 5900:127.0.0.1:5900 <vm>`.
 - Testy: `STACK_ONLY=1 scripts/e2e/run-hyprtester` (grupa `stack`) albo nazwy testów jako argumenty.

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # hs-session: drive a headless Hyprstack instance for manual / scripted E2E testing.
 #
-#   hs-session start [--bin PATH] [--config FILE] [--res WxH] [--outputs N] [--vnc PORT] [--shell] [--plugin]
+#   hs-session start [--bin PATH] [--config FILE] [--res WxH] [--outputs N] [--vnc PORT] [--shell] [--plugin] [--default-config]
+#                    --default-config: the shipped example/hyprstack.lua (animations etc.) instead of the
+#                    minimal test config, e.g. to try the session by hand over VNC
 #   hs-session stop
 #   hs-session ctl ARGS...        run hyprctl against the session
 #   hs-session spawn CMD...       run a client inside the session (detached)
@@ -35,7 +37,7 @@ hctl() {
 }
 
 cmd_start() {
-    local bin="$REPO_ROOT/build/Hyprland" config="" res="1280x720" outputs=1 vnc="" shell=0 plugin=0
+    local bin="$REPO_ROOT/build/Hyprland" config="" res="1280x720" outputs=1 vnc="" shell=0 plugin=0 defaultcfg=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --bin) bin="$2"; shift 2 ;;
@@ -45,6 +47,7 @@ cmd_start() {
             --vnc) vnc="$2"; shift 2 ;;
             --shell) shell=1; shift ;;
             --plugin) plugin=1; shift ;;
+            --default-config) defaultcfg=1; shift ;;
             *) die "unknown option $1" ;;
         esac
     done
@@ -69,7 +72,13 @@ cmd_start() {
                 echo "hl.monitor({ output = \"HEADLESS-$i\", mode = \"${res}@60\", position = \"auto-right\", scale = \"1\" })"
             done
             echo 'hl.monitor({ output = "", disabled = true })'
-            cat "$REPO_ROOT/scripts/e2e/session-base.lua"
+            if [[ "$defaultcfg" == "1" ]]; then
+                # the shipped config, minus its catch-all monitor rule (it would light up the VM's own display)
+                python3 -c 'import re,sys; print(re.sub(r"hl\.monitor\(\{\s*output\s*=\s*\"\".*?\}\)", "", open(sys.argv[1]).read(), count=1, flags=re.S))' "$REPO_ROOT/example/hyprstack.lua"
+                echo 'hl.config({ misc = { disable_watchdog_warning = true } })'
+            else
+                cat "$REPO_ROOT/scripts/e2e/session-base.lua"
+            fi
         } > "$config"
     fi
 
