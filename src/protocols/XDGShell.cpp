@@ -1,4 +1,5 @@
 #include "XDGShell.hpp"
+#include "../stack/StackMode.hpp"
 #include "XDGDialog.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
@@ -555,7 +556,8 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         if (m_surface->m_current.texture && !m_mapped) {
             // this forces apps to not draw CSD.
-            if (m_toplevel)
+            // Hyprstack: not in stacking mode, where windows are told their real state
+            if (m_toplevel && !Stack::stackingIsDefault())
                 m_toplevel->setMaximized(true);
 
             m_mapped = true;

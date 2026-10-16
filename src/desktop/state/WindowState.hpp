@@ -33,6 +33,7 @@ namespace Desktop {
         void                   moveToTop(PHLWINDOW w);
         void                   moveToBottom(PHLWINDOW w);
         void                   moveToZ(PHLWINDOW w, bool top);
+        void                   applyStackPolicy();
 
         struct {
             CHyprSignalListener viewCreate;

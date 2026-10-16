@@ -1,4 +1,5 @@
 #include "WaylandBackend.hpp"
+#include "../../../stack/StackMode.hpp"
 
 #include <limits>
 
@@ -177,7 +178,9 @@ CWaylandBackend::CWaylandBackend(SP<CXDGSurfaceResource> resource) : m_resource(
             // This is because apps are always "maximized" under Hyprland + Wayland, check setMaximized().
             const auto REQUESTED_MAXIMIZE = TOPLEVEL->m_state.requestsMaximize.has_value();
             auto       requestsMaximize   = std::optional<bool>{std::nullopt};
-            if (REQUESTED_MAXIMIZE)
+            if (REQUESTED_MAXIMIZE && Stack::windowIsStacking(m_window.lock()))
+                requestsMaximize = TOPLEVEL->m_state.requestsMaximize; // Hyprstack: we send real states, requests are explicit
+            else if (REQUESTED_MAXIMIZE)
                 requestsMaximize = !Fullscreen::controller()->isFullscreen(m_window.lock(), Fullscreen::FSMODE_MAXIMIZED);
 
             m_events.stateRequest.emit({
@@ -337,6 +340,14 @@ void CWaylandBackend::setFullscreen(bool fullscreen) {
 }
 
 void CWaylandBackend::setMaximized(bool maximized) {
+    // Hyprstack: stacking windows get their real maximized state
+    if (Stack::windowIsStacking(m_window.lock())) {
+        const auto RESOURCE = m_resource.lock();
+        if (RESOURCE && RESOURCE->m_toplevel)
+            RESOURCE->m_toplevel->setMaximized(maximized);
+        return;
+    }
+
     // Do not let Wayland propagate maximized states.
     // Hyprland always sets Maximized for apps to force them to not draw CSD.
     // Even in 2026, GTK can still draw CSD even with tiled properties,

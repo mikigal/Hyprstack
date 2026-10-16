@@ -1,4 +1,5 @@
 #include "WindowState.hpp"
+#include "../../stack/WindowStack.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../render/Renderer.hpp"
 #include "../view/window/Window.hpp"
@@ -71,6 +72,7 @@ void CWindowState::moveToZ(PHLWINDOW w, bool top) {
 
     if (!w->backend().isX11()) {
         moveSingleToZ(w);
+        applyStackPolicy();
         return;
     }
 
@@ -93,6 +95,19 @@ void CWindowState::moveToZ(PHLWINDOW w, bool top) {
     collectX11Stack(w, collectX11Stack);
     for (auto const& it : toMove) {
         moveSingleToZ(it);
+    }
+
+    applyStackPolicy();
+}
+
+void CWindowState::applyStackPolicy() {
+    // Hyprstack: keep-above/below layers, transients above parents
+    if (!Stack::windowStack()->restack(m_windows))
+        return;
+
+    for (const auto& w : m_windows) {
+        if (w->mapped())
+            g_pHyprRenderer->damageWindow(w);
     }
 }
 

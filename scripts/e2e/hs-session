@@ -47,6 +47,16 @@ cmd_start() {
     done
 
     [[ -f "$STATE_DIR/env" ]] && cmd_stop >/dev/null 2>&1 || true
+
+    # Only one compositor can be DRM master of the (single) card at a time; a second
+    # instance fails to allocate buffers and ends up with 0x0 outputs. Kill leftovers
+    # (e.g. from a crashed hyprtester run).
+    if pgrep -x Hyprland >/dev/null; then
+        echo "hs-session: killing stray Hyprland instances: $(pgrep -x Hyprland | tr '\n' ' ')" >&2
+        pkill -x Hyprland || true
+        for _ in $(seq 1 30); do pgrep -x Hyprland >/dev/null || break; sleep 0.1; done
+        pkill -9 -x Hyprland || true
+    fi
     [[ -x "$bin" ]] || die "compositor binary not found: $bin"
 
     if [[ -z "$config" ]]; then

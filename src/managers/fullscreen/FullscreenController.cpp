@@ -1,4 +1,5 @@
 #include "FullscreenController.hpp"
+#include "../../stack/WindowStack.hpp"
 
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../ipc/s2/S2.hpp"
@@ -292,6 +293,10 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
 void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal, std::optional<eFullscreenMode> client,
                                               std::optional<bool> layoutAware, eFullscreenMutationContext context) {
     if (!window)
+        return;
+
+    // Hyprstack: maximize is a geometry state on stacking workspaces, not a fullscreen mode
+    if (Stack::windowStack()->interceptFullscreenRequest(window, internal, client))
         return;
 
     if (context == FULLSCREEN_MUTATION_TRANSFER)

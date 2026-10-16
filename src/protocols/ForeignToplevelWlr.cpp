@@ -1,4 +1,5 @@
 #include "ForeignToplevelWlr.hpp"
+#include "../stack/WindowStack.hpp"
 #include "core/Output.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
@@ -91,8 +92,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->mapped())
             return;
 
-        IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},1", rc<uintptr_t>(PWINDOW.get()))});
-        Event::bus()->m_events.window.minimize.emit(PWINDOW, true);
+        Stack::windowStack()->requestMinimize(PWINDOW, true);
     });
 
     m_resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -104,8 +104,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->mapped())
             return;
 
-        IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},0", rc<uintptr_t>(PWINDOW.get()))});
-        Event::bus()->m_events.window.minimize.emit(PWINDOW, false);
+        Stack::windowStack()->requestMinimize(PWINDOW, false);
     });
 
     m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {
@@ -179,6 +178,14 @@ void CForeignToplevelHandleWlr::sendState() {
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_FULLSCREEN;
         else
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;
+    } else if (Stack::windowStack()->maximized(PWINDOW) == Stack::MAXIMIZE_FULL) {
+        auto p = sc<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
+        *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;
+    }
+
+    if (PWINDOW->isMinimized()) {
+        auto p = sc<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
+        *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MINIMIZED;
     }
 
     m_resource->sendState(&state);
@@ -372,6 +379,16 @@ CForeignToplevelWlrProtocol::CForeignToplevelWlrProtocol(const wl_interface* ifa
     });
 
     static auto P5 = Event::bus()->m_events.window.fullscreen.listen([this](PHLWINDOW window) {
+        if (!windowValidForForeign(window))
+            return;
+
+        for (auto const& m : m_managers) {
+            m->onFullscreen(window);
+        }
+    });
+
+    // Hyprstack: refresh the minimized state
+    static auto P6 = Event::bus()->m_events.window.minimize.listen([this](PHLWINDOW window, bool) {
         if (!windowValidForForeign(window))
             return;
 

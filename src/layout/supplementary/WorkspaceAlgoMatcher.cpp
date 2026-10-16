@@ -15,6 +15,10 @@
 
 #include "../../state/WorkspaceState.hpp"
 
+#include "../../stack/StackMode.hpp"
+#include "../../stack/layout/StackingFloatingAlgorithm.hpp"
+#include "../../stack/layout/StackingTiledAlgorithm.hpp"
+
 using namespace Layout;
 using namespace Layout::Supplementary;
 
@@ -32,10 +36,12 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
         {"master", [] { return makeUnique<Tiled::CMasterAlgorithm>(); }},
         {"scrolling", [] { return makeUnique<Tiled::CScrollingAlgorithm>(); }},
         {"monocle", [] { return makeUnique<Tiled::CMonocleAlgorithm>(); }},
+        {Stack::LAYOUT_NAME, [] { return makeUnique<Tiled::CStackingTiledAlgorithm>(); }},
     };
 
     m_floatingAlgos = {
         {"default", [] { return makeUnique<Floating::CDefaultFloatingAlgorithm>(); }},
+        {Stack::LAYOUT_NAME, [] { return makeUnique<Floating::CStackingFloatingAlgorithm>(); }},
     };
 
     m_algoNames = {
@@ -44,6 +50,8 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
         {&typeid(Tiled::CScrollingAlgorithm), "scrolling"},
         {&typeid(Tiled::CMonocleAlgorithm), "monocle"},
         {&typeid(Floating::CDefaultFloatingAlgorithm), "default"},
+        {&typeid(Tiled::CStackingTiledAlgorithm), Stack::LAYOUT_NAME},
+        {&typeid(Floating::CStackingFloatingAlgorithm), Stack::LAYOUT_NAME},
     };
 }
 
@@ -108,8 +116,13 @@ std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) 
     return rule && rule->m_layout.has_value() ? rule->m_layout.value() : *PLAYOUT;
 }
 
+std::string CWorkspaceAlgoMatcher::floatingAlgoForTiled(const std::string& tiled) {
+    return tiled == Stack::LAYOUT_NAME ? Stack::LAYOUT_NAME : DEFAULT_FLOATING_ALGO;
+}
+
 SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w) {
-    return CAlgorithm::create(algoForNameTiled(tiledAlgoForWorkspace(w)), makeUnique<Floating::CDefaultFloatingAlgorithm>(), w->space());
+    const auto TILED = tiledAlgoForWorkspace(w);
+    return CAlgorithm::create(algoForNameTiled(TILED), algoForNameFloat(floatingAlgoForTiled(TILED)), w->space());
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
@@ -133,6 +146,11 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
             continue;
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(WORKSPACE);
+
+        // Hyprstack: stacking workspaces use their own floating algorithm
+        const auto FLOAT_TO_USE = floatingAlgoForTiled(LAYOUT_TO_USE);
+        if (const auto& FLOAT_ALGO = ALGORITHM->floatingAlgo(); FLOAT_ALGO && getNameForTiledAlgo(&typeid(*FLOAT_ALGO)) != FLOAT_TO_USE)
+            ALGORITHM->updateFloatingAlgo(algoForNameFloat(FLOAT_TO_USE));
 
         const auto CURRENT_LAYOUT = getNameForTiledAlgo(TILED_ALGO.get());
 

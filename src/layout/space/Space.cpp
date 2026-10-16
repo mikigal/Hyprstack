@@ -1,4 +1,5 @@
 #include "Space.hpp"
+#include "../../stack/StackMode.hpp"
 
 #include "../target/Target.hpp"
 #include "../algorithm/Algorithm.hpp"
@@ -115,6 +116,10 @@ PHLWORKSPACE CSpace::workspace() const {
 }
 
 void CSpace::toggleTargetFloating(SP<ITarget> t) {
+    // Hyprstack: windows on stacking workspaces are always floating
+    if (Stack::workspaceIsStacking(workspace()) && t->floating())
+        return;
+
     t->setWasTiling(true);
     m_algorithm->setFloating(t, !t->floating());
     t->setWasTiling(false);

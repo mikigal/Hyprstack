@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Run hyprtester against the local build. Extra args are passed through (e.g. test names).
+#   scripts/e2e/run-hyprtester                     # all tests
+#   scripts/e2e/run-hyprtester stackMaximizeToggle # selected tests
+#   STACK_ONLY=1 scripts/e2e/run-hyprtester        # only the "stack" group
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOG_DIR="${HS_LOG_DIR:-$HOME/.cache/hs-session}"
+mkdir -p "$LOG_DIR"
+
+# a crashed run can leave a compositor behind holding DRM master
+pkill -x Hyprland 2>/dev/null && sleep 1
+pkill -9 -x Hyprland 2>/dev/null
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export LIBSEAT_BACKEND=noop
+export LANG=en_US.UTF-8
+
+ARGS=("$@")
+if [[ "${STACK_ONLY:-0}" == "1" && ${#ARGS[@]} -eq 0 ]]; then
+    mapfile -t ARGS < <(grep -ho 'TEST_CASE([A-Za-z0-9_]*)' "$REPO_ROOT"/hyprtester/src/tests/stack/*.cpp | sed 's/TEST_CASE(\(.*\))/\1/')
+fi
+
+cd "$REPO_ROOT/hyprtester" || exit 1
+"$REPO_ROOT/build/hyprtester/hyprtester" -b "$REPO_ROOT/build/Hyprland" -p "$REPO_ROOT/hyprtester/plugin/hyprtestplugin.so" "${ARGS[@]}" 2>&1 \
+    | grep -av "MESA-EGL: warning" | tee "$LOG_DIR/hyprtester.log"
+RC=${PIPESTATUS[0]}
+
+pkill -x Hyprland 2>/dev/null
+exit "$RC"

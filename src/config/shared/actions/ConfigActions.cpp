@@ -1,4 +1,6 @@
 #include "ConfigActions.hpp"
+#include "../../../stack/StackMode.hpp"
+#include "../../../stack/WindowStack.hpp"
 #include "../parserUtils/ParserUtils.hpp"
 #include "../../ConfigManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"
@@ -339,6 +341,12 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode mode, bool la
     auto window = xtract(w);
     if (!window)
         return {};
+
+    // Hyprstack: on stacking workspaces "maximized" toggles a real maximize
+    if (mode == Fullscreen::FSMODE_MAXIMIZED && Stack::windowIsStacking(window)) {
+        Stack::windowStack()->toggleMaximized(window);
+        return {};
+    }
 
     if (Fullscreen::controller()->isFullscreen(window, mode))
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, std::nullopt, layoutAware);

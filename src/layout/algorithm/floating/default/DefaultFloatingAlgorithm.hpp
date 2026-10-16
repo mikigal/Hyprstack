@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../FloatingAlgorithm.hpp"
 
 #include <map>
@@ -26,7 +28,7 @@ namespace Layout::Floating {
 
         virtual void recenter(SP<ITarget> t);
 
-      private:
+      protected:
         CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully = true);
 
         void updateTarget(SP<ITarget>);

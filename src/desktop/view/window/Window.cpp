@@ -16,6 +16,8 @@
 #include <fstream>
 #include <string_view>
 #include "Window.hpp"
+#include "../../../stack/StackMode.hpp"
+#include "../../../stack/WindowStack.hpp"
 #include "WindowEffectsController.hpp"
 #include "WindowFullscreenPolicy.hpp"
 #include "WindowGroupMembership.hpp"
@@ -618,7 +620,23 @@ void CWindow::setHidden(bool hidden) {
 }
 
 bool CWindow::isHidden() const {
-    return m_hidden;
+    return m_hidden || m_minimized;
+}
+
+void CWindow::setMinimized(bool minimized) {
+    m_minimized = minimized;
+
+    if (minimized)
+        m_events.hide.emit();
+
+    if (minimized && Desktop::focusState()->window() == m_self)
+        Desktop::focusState()->window().reset();
+
+    setSuspended(isHidden());
+}
+
+bool CWindow::isMinimized() const {
+    return m_minimized;
 }
 
 bool CWindow::shouldBlur() const {
@@ -837,6 +855,10 @@ void CWindow::activate(bool force) {
 }
 
 void CWindow::onUpdateState(const SBackendStateRequest& request) {
+    // Hyprstack: real minimize on stacking workspaces
+    if (request.minimized.value_or(false) && m_isMapped)
+        Stack::windowStack()->requestMinimize(m_self.lock(), true);
+
     requestClientFullscreen({
         .fullscreen        = request.fullscreen,
         .maximized         = request.maximized,
@@ -1424,6 +1446,10 @@ void CWindow::mapWindow() {
     PMONITOR = m_monitor.lock();
 
     syncInitialWorkspaceToken(m_workspace);
+
+    // Hyprstack: there is no tiling on stacking workspaces
+    if (Stack::workspaceIsStacking(m_workspace))
+        m_target->setFloatingInitial(true);
 
     m_swallowing->reserveCandidate();
 

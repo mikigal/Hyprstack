@@ -73,3 +73,42 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 - Klienci testowi: `foot` (SSD), `gtk4-demo` (CSD), `xterm` (XWayland).
 - Środowisko VM: brak sesji logind po SSH → `LIBSEAT_BACKEND=noop` (DRM otwierany bezpośrednio
   dla alokatora GBM), render przez llvmpipe.
+
+## Stan implementacji
+
+### Faza 1 — rdzeń stackingu (zrobione)
+
+- Layout `stacking` (domyślny `general:layout`): `CStackingTiledAlgorithm` (wszystko oddaje do floating)
+  + `CStackingFloatingAlgorithm` (rozmieszczanie: `stacking:placement` = smart/center/cascade/mouse,
+  dialogi wyśrodkowane nad rodzicem, przycinanie do obszaru roboczego).
+- `Stack::CWindowStack` (`src/stack/WindowStack.*`):
+  - maximize pełny/pionowy/poziomy z przywracaniem geometrii, wiele zmaksymalizowanych okien naraz,
+    prawdziwy stan `maximized` wysyłany klientom xdg, dopasowanie przy zmianie obszaru roboczego / monitora,
+    ręczny move/resize kończy maximize;
+  - minimize (okno ukryte, fokus wraca do poprzedniego wg MRU), żądania z xdg/X11/foreign-toplevel;
+  - warstwy keep-above / normal / keep-below, dialogi (transient) zawsze nad rodzicem;
+  - raise przy fokusie z klawiatury/dispatchera/aktywacji (`stacking:raise_on_focus`), hover nie wynosi.
+- Dispatchery: `hl.dsp.window.minimize/maximize/keep_above/keep_below`; `fullscreen({mode="maximized"})`
+  na workspace stacking robi prawdziwy maximize.
+- IPC: `hyprctl clients` ma pola `minimized`, `maximized` (0/1=H/2=V/3=pełny), `stackLayer` (0/1/2);
+  eventy socket2 `maximized>>ADDR,MODE`, `minimized>>ADDR,0|1`, `stacklayer>>ADDR,LAYER`.
+- Testy: `hyprtester/src/tests/stack/` (grupa `stack`), uruchamianie: `STACK_ONLY=1 scripts/e2e/run-hyprtester`.
+
+### Haki w plikach upstreamu (sprawdzać przy merge'ach)
+
+| Plik | Hak |
+|---|---|
+| `config/values/ConfigValues.cpp` | dołączenie `Stack::Config::getConfigValues()`, domyślny `general:layout = stacking` |
+| `layout/supplementary/WorkspaceAlgoMatcher.*` | rejestracja algorytmów `stacking`, wybór algorytmu floating |
+| `layout/algorithm/floating/default/DefaultFloatingAlgorithm.hpp` | `#pragma once`, `private` → `protected` |
+| `layout/space/Space.cpp` | `toggleTargetFloating` = no-op na stacking |
+| `desktop/view/window/Window.*` | `setFloatingInitial(true)` przy mapowaniu, flaga `m_minimized`, żądanie minimize |
+| `desktop/state/WindowState.*` | `applyStackPolicy()` po każdej zmianie z-order |
+| `managers/fullscreen/FullscreenController.cpp` | przechwycenie `FSMODE_MAXIMIZED` |
+| `config/shared/actions/ConfigActions.cpp` | toggle maximize w `fullscreenWindow` |
+| `config/lua/bindings/LuaBindingsDispatchers.cpp` | rejestracja dispatcherów stack |
+| `desktop/view/window/WaylandBackend.cpp` | prawdziwy stan maximized, jawne żądania maximize |
+| `protocols/XDGShell.cpp` | brak wymuszonego `maximized` przy mapowaniu w trybie stacking |
+| `protocols/ForeignToplevelWlr.cpp` | minimize przez `Stack`, stany MAXIMIZED/MINIMIZED |
+| `ipc/s1/Commands.cpp` | pola stack w `clients` |
+| `hyprtester/src/main.cpp` | grupa testów `stack` |

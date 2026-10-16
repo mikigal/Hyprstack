@@ -3,6 +3,7 @@
 #include <lua.h>
 
 #include "Check.hpp"
+#include "../../../stack/config/StackLuaDispatchers.hpp"
 
 #include "../../supplementary/executor/Executor.hpp"
 #include "../../shared/actions/ConfigActions.hpp"
@@ -1355,6 +1356,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setDispatcherFn(L, "deny_from_group", hlWindowDenyFromGroup, 1);
         Internal::setDispatcherFn(L, "drag", hlWindowDrag, 0);
         Internal::setDispatcherFn(L, "resize", hlWindowResize, 1);
+        Stack::Lua::registerWindowDispatchers(L); // Hyprstack
         lua_setfield(L, -2, "window");
 
         lua_newtable(L);

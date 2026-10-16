@@ -21,6 +21,7 @@
 #include "tests/main/tests.hpp"
 #include "tests/clients/tests.hpp"
 #include "tests/misc/tests.hpp"
+#include "tests/stack/tests.hpp"
 #include "tests/shared.hpp"
 
 #include <hyprutils/os/Process.hpp>
@@ -241,6 +242,7 @@ int main(int argc, char** argv, char** envp) {
         requestedTestCases = miscTestCases;
         std::ranges::copy(clientTestCases, std::back_inserter(requestedTestCases));
         std::ranges::copy(mainTestCases, std::back_inserter(requestedTestCases));
+        std::ranges::copy(stackTestCases, std::back_inserter(requestedTestCases));
     }
 
     NLog::yellow("launching hl");

@@ -207,6 +207,8 @@ namespace Desktop::View {
         void                       onMap();
         void                       setHidden(bool hidden);
         bool                       isHidden() const;
+        void                       setMinimized(bool minimized);
+        bool                       isMinimized() const;
         bool                       shouldBlur() const;
         bool                       shouldBlur(const Render::SWindowRenderPresentation& presentation) const;
         bool                       isAllowedOverFullscreen() const;
@@ -280,6 +282,7 @@ namespace Desktop::View {
         virtual void onInputBlockStateUpdated(bool blocked) override;
         // For hidden windows and stuff
         bool        m_hidden    = false;
+        bool        m_minimized = false; // Hyprstack: hidden independently of group / swallow hiding
         bool        m_suspended = false;
         bool        m_isMapped  = false;
         std::string m_lastWorkspaceAddress;
