@@ -11,6 +11,10 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
 | Pulpity | Jeden pulpit. Każdy monitor ma jeden stały workspace; okna przesuwa się między monitorami. Mechanizm workspace'ów zostaje w kodzie (uśpiony), bez UI/bindów w domyślnej konfiguracji. |
 | Dekoracje | SSD rysowane przez kompozytor (belka: tytuł, przyciski, drag, dwuklik). Negocjacja SSD przez `xdg-decoration` i `org_kde_kwin_server_decoration`. Klienci z CSD (GTK) — bez belki serwera. |
 | Nazwa | Drop-in zamiennik Hyprlanda (binarka `Hyprland`, `hyprctl`, te same ścieżki i IPC) — minimalizuje konflikty przy merge'ach, Quickshell działa bez zmian. |
+| Alt+Tab | UI w Quickshellu. Kompozytor dostarcza listę okien w kolejności MRU, eventy IPC i miniatury (toplevel-export). |
+| Snapping | Jak KDE: krawędź L/P → połowa, róg → ćwiartka, góra → maximize; półprzezroczysty podgląd; przyciąganie do krawędzi okien/ekranu. |
+| Skróty | Jak Windows: Win+←/→ snap, Win+↑ maximize, Win+↓ restore/minimize, Win+D pokaż pulpit, Win+Shift+←/→ okno na inny monitor, Alt+F4, Alt+Tab. Przesuwanie głównie belką; Alt+drag opcjonalnie w configu. |
+| Fokus | Click to focus + raise. Najechanie myszą nie zmienia fokusu. |
 
 ## Analiza kodu upstreamu (0.56, `e2ad066c`)
 
@@ -50,6 +54,14 @@ zamiast tilingu. Shell (panel, taskbar, launcher, Alt+Tab UI) powstanie osobno w
    rectangle), `ext-foreign-toplevel-list`, rozszerzone eventy IPC, eksport miniatur
    (toplevel-export) dla Alt+Tab/taskbara.
 4. **Domyślna konfiguracja** w stylu KDE (skróty, brak gapsów, layout tiling niedostępny).
+
+## Plan faz
+
+1. Rdzeń stackingu: wszystko floating, rozmieszczanie, z-order + raise on click, maximize, minimize (+ testy E2E).
+2. Belki SSD + resize z krawędzi.
+3. Quick-tile / snapping z podglądem + skróty Win+strzałki.
+4. Integracja z shellem (foreign-toplevel, IPC, MRU, miniatury) + roboczy shell w Quickshellu do testów.
+5. Domyślny config w stylu Windows, ukrycie tilingu.
 
 ## Testy E2E
 
